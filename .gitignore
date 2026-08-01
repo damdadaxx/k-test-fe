@@ -44,3 +44,8 @@ next-env.d.ts
 docs/*.hwpx
 docs/*.pdf
 docs/*.png
+
+# md 파일
+AGENTS.md
+CLAUDE.md
+SKILL.md
