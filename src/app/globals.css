@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+:root {
+  /* Color */
+  --color-primary: #1b1b1b;
+  --color-white: #ffffff;
+  --color-page-bg: #f0f1f1;
+
+  /* Neutral */
+  --color-neutral-20: #f1f1f1;
+  --color-neutral-30: #dee0e1;
+  --color-neutral-90: #131414;
+
+  /* Text / Icon */
+  --color-icon-30: #909090;
+  --color-icon-40: #7d7d7d;
+  --color-icon-50: #666666;
+  --color-icon-70: #545454;
+  --color-icon-80: #333333;
+  --color-icon-90: #121212;
+
+  /* State */
+  --color-success: #3adb21;
+  --color-error: #de2433;
+
+  /* Space */
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Radius */
+  --radius-8: 8px;
+}
+
+@theme inline {
+  --font-sans: var(--font-pretendard);
+  --font-mono: var(--font-geist-mono);
+
+  --color-background: var(--color-page-bg);
+  --color-foreground: var(--color-primary);
+
+  --color-primary: var(--color-primary);
+  --color-white: var(--color-white);
+  --color-page-bg: var(--color-page-bg);
+
+  --color-neutral-20: var(--color-neutral-20);
+  --color-neutral-30: var(--color-neutral-30);
+  --color-neutral-90: var(--color-neutral-90);
+
+  --color-icon-30: var(--color-icon-30);
+  --color-icon-40: var(--color-icon-40);
+  --color-icon-50: var(--color-icon-50);
+  --color-icon-70: var(--color-icon-70);
+  --color-icon-80: var(--color-icon-80);
+  --color-icon-90: var(--color-icon-90);
+
+  --color-success: var(--color-success);
+  --color-error: var(--color-error);
+
+  --radius-8: var(--radius-8);
+
+  /* Typography: body */
+  --text-body-sm: 0.875rem; /* 14 */
+  --text-body-sm--line-height: 1;
+  --text-body-sm--font-weight: 400;
+
+  --text-body-md: 1rem; /* 16 */
+  --text-body-md--line-height: 1.32;
+  --text-body-md--font-weight: 400;
+
+  /* Typography: title */
+  --text-title-sm: 1.125rem; /* 18 */
+  --text-title-sm--line-height: 1.32;
+  --text-title-sm--font-weight: 700;
+
+  --text-title-md: 1.5rem; /* 24 */
+  --text-title-md--line-height: 1.2;
+  --text-title-md--font-weight: 700;
+
+  --text-title-lg: 2rem; /* 32 */
+  --text-title-lg--line-height: 1.2;
+  --text-title-lg--font-weight: 700;
+
+  /* Typography: badge */
+  --text-badge-sm: 1rem; /* 16 */
+  --text-badge-sm--line-height: 1;
+  --text-badge-sm--font-weight: 400;
+
+  --text-badge-md: 1.125rem; /* 18 */
+  --text-badge-md--line-height: 1;
+  --text-badge-md--font-weight: 700;
+
+  /* Typography: button */
+  --text-button-md: 1.125rem; /* 18 */
+  --text-button-md--line-height: 1;
+  --text-button-md--font-weight: 700;
+
+  --text-button-lg: 1.5rem; /* 24 */
+  --text-button-lg--line-height: 1;
+  --text-button-lg--font-weight: 700;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
