@@ -11,9 +11,9 @@ import { Skeleton } from '@/components/ui/Skeleton';
 export default function ResultPage({
   params,
 }: {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { sessionId } = use(params);
+  const { id: sessionId } = use(params);
   const { data, isLoading } = useQuery({
     queryKey: ['result', sessionId],
     queryFn: () => getResult(sessionId),
