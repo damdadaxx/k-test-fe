@@ -1,17 +1,36 @@
-export type QuestionType = 'kakao_chat' | 'speaking';
+export type QuestionType = 'chat' | 'speaking' | 'writing';
 
-export interface ExamSession {
-  sessionId: string;
-  examId: string;
-  status: 'ready' | 'in_progress' | 'finished';
-  startedAt?: string;
-  endedAt?: string;
+export type ExamStatus = 'SCHEDULED' | 'OPEN' | 'CLOSED';
+
+export interface ExamListItem {
+  id: string;
+  roundName: string;
+  applicationOpenAt: string;
+  applicationCloseAt: string;
+  openAt: string;
+  closeAt: string;
+  status: ExamStatus;
 }
 
-export interface ExamModule {
-  moduleId: string;
-  title: string;
-  order: number;
+export interface ApplyExamResponse {
+  id: string;
+  examId: string;
+  appliedAt: string;
+}
+
+export interface StartExamSessionResponse {
+  id: string;
+  examId: string;
+  status: 'INPROGRESS' | 'SUBMITTED' | 'EXPIRED';
+  startedAt: string;
+}
+
+export interface SessionQuestionResponse {
+  id: string;
+  part: string;
+  prompt: string;
+  imageUrl: string | null;
+  mode: 'writing' | 'speaking' | null;
 }
 
 export interface BaseQuestion {
@@ -23,19 +42,30 @@ export interface BaseQuestion {
   instruction: string;
 }
 
-export interface KakaoChatQuestionData extends BaseQuestion {
-  type: 'kakao_chat';
+export interface ChatQuestionData extends BaseQuestion {
+  type: 'chat';
   chatPartnerName: string;
 }
 
 export interface SpeakingQuestionData extends BaseQuestion {
   type: 'speaking';
-  imageUrl: string;
+  imageUrl?: string;
+  // 이미지 없이 주제 텍스트로 발화하는 문항(예: help_request)일 때만 채워짐.
+  topicTitle?: string;
+  topicBullets?: string[];
   prepSeconds: number;
   answerSeconds: number;
 }
 
-export type Question = KakaoChatQuestionData | SpeakingQuestionData;
+export interface WritingQuestionData extends BaseQuestion {
+  type: 'writing';
+  followUpInstruction: string;
+  mainSeconds: number;
+  followUpSeconds: number;
+}
+
+export type Question =
+  ChatQuestionData | SpeakingQuestionData | WritingQuestionData;
 
 export interface ChatMessage {
   id: string;
@@ -44,8 +74,23 @@ export interface ChatMessage {
   sentAt: string;
 }
 
-export interface AnswerSubmission {
-  sessionId: string;
+export type AnswerType = 'TEXT' | 'AUDIO';
+
+export interface SaveAnswerRequest {
+  type: AnswerType;
+  contentText?: string;
+  audioFileUrl?: string;
+  durationMs?: number;
+}
+
+export interface AnswerResponse {
+  id: string;
   questionId: string;
-  answer: string;
+  type: AnswerType;
+  contentText: string | null;
+  audioFileUrl: string | null;
+  status: 'DRAFT' | 'FINAL';
+  modifiedAt: string;
+  graded: boolean;
+  score: unknown;
 }
