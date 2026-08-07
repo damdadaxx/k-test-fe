@@ -1,30 +1,36 @@
-export interface IdCardUploadRequest {
-  sessionId: string;
-  image: string;
+export type IdCardFileType = 'ID_CARD' | 'FACE';
+
+export interface UploadUrlResponse {
+  path: string;
+  signedUrl: string;
+  token: string;
 }
 
-export interface IdCardUploadResponse {
-  idCardImageUrl: string;
-  extractedName?: string;
+export interface VerifyIdCardRequest {
+  examId: string;
+  capturedAt: string;
+  idCardPath: string;
+  facePath: string;
 }
 
-export interface FaceVerifyRequest {
-  sessionId: string;
-  faceImage: string;
-}
-
-export interface FaceVerifyResponse {
-  verified: boolean;
+export interface VerifyIdCardResponse {
+  matched: boolean;
+  confidence: number;
+  faceVerified: boolean;
   similarity: number;
+  applicantVerified: boolean;
+  message: string;
 }
 
-export interface EarDetectionRequest {
-  sessionId: string;
-  earImage: string;
+export interface DetectEarphoneRequest {
+  examId: string;
+  leftEarImage: Blob;
+  rightEarImage: Blob;
 }
 
-export interface EarDetectionResponse {
-  verified: boolean;
+export interface EarphoneDetectResponse {
   earphoneDetected: boolean;
-  message?: string;
+  leftEarDetected: boolean;
+  rightEarDetected: boolean;
+  message: string;
 }

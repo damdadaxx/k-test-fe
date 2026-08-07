@@ -1,17 +1,22 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { detectEar } from '@/lib/api/identity';
+import { detectEarphone } from '@/lib/api/identity';
 
 import { useSessionStore } from '@/store/sessionStore';
 
-export function useEarDetection() {
+export function useEarDetection(examId: string) {
   const setEarCheckVerified = useSessionStore(
     (state) => state.setEarCheckVerified,
   );
 
   return useMutation({
-    mutationFn: detectEar,
-    onSuccess: (data) =>
-      setEarCheckVerified(data.verified && !data.earphoneDetected),
+    mutationFn: ({
+      leftEarImage,
+      rightEarImage,
+    }: {
+      leftEarImage: Blob;
+      rightEarImage: Blob;
+    }) => detectEarphone({ examId, leftEarImage, rightEarImage }),
+    onSuccess: (data) => setEarCheckVerified(!data.earphoneDetected),
   });
 }
