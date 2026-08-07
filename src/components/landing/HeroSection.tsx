@@ -1,3 +1,7 @@
+import Image from 'next/image';
+
+import img_landing from '@/app/assets/images/img_landing.svg';
+
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 
 import { CheckListItem } from './CheckListItem';
@@ -25,9 +29,12 @@ export function HeroSection() {
           </ButtonPrimary>
         </div>
 
-        <div
-          className="max-w-[479px] aspect-479/424 w-full rounded-lg bg-[repeating-conic-gradient(#e5e7eb_0%_25%,#ffffff_0%_50%)] bg-[length:24px_24px]"
-          aria-hidden
+        <Image
+          src={img_landing}
+          width={479}
+          height={424}
+          alt="landing_image"
+          className="max-w-[479px] aspect-479/424 w-full"
         />
       </div>
     </section>

@@ -13,7 +13,7 @@
 
   /* Text / Icon */
   --color-icon-30: #909090;
-  --color-icon-40: #7d7d7d;
+    /* --color-icon-40: #7d7d7d; */
   --color-icon-50: #666666;
   --color-icon-70: #545454;
   --color-icon-80: #333333;
@@ -21,6 +21,9 @@
 
   /* State */
   --color-success: #3adb21;
+  --color-success-10: #EEFFEC;
+  --color-limit-10: #dfefff;
+  --color-limit: #1581ed;
   --color-error: #de2433;
 
   /* Space */

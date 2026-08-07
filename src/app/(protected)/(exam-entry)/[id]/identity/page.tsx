@@ -41,8 +41,8 @@ export default function IdentityPage({
             Upload a photo of your ID
           </h1>
           <p className="text-title-md font-normal text-icon-50">
-            Please upload your passport, alien registration card, or residence
-            card.
+            Please upload your passport, alien
+            <br /> registration card, or residence card.
           </p>
         </div>
         <IdCardUpload onUpload={handleIdUpload} />

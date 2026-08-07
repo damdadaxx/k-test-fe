@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import ImgTest from '@/app/assets/images/img_exam_1.png';
+
 import type { SpeakingQuestionData } from '@/types/exam';
 
 import { useSubmitAudio } from '@/hooks/exam/useSubmitAudio';
@@ -107,11 +109,15 @@ export function SpeakingQuestion({
         <div>
           <h1 className="mb-[12px] text-title-lg text-icon-90">
             {question.topicTitle
-              ? '아래 주제에 대해 말할 준비를 하세요'
-              : '아래 이미지에 대해 말할 준비를 하세요'}
+              ? '다음 안전수칙을 읽고 새로 온 동료에게 알려주세요.'
+              : '동료가 위험한 행동을 하고 있습니다. 경고하세요.'}
           </h1>
           <p className={cn('mb-[36px] text-title-sm font-normal text-icon-50')}>
-            {question.answerSeconds}초 동안 말할 수 있습니다
+            {question.topicTitle
+              ? '90초 동안 말할 수 있습니다'
+              : '무엇이 위험한지 → 왜 위험한지 → 어떻게 해야 하는지를 포함하여 말하세요. (30초)'}
+
+            {/* {question.answerSeconds}초 동안 말할 수 있습니다 */}
           </p>
         </div>
 
@@ -121,7 +127,8 @@ export function SpeakingQuestion({
             bullets={question.topicBullets ?? []}
           />
         ) : (
-          <ImagePrompt imageUrl={question.imageUrl ?? ''} />
+          <ImagePrompt imageUrl={ImgTest} />
+          // <ImagePrompt imageUrl={question.imageUrl ?? ''} />
         )}
 
         {isRecording && <RecordingWaveform />}
