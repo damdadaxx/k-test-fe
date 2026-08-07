@@ -25,20 +25,20 @@ npm run dev
 
 `.env.example` 참고:
 
-| 변수 | 설명 |
-| --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | 백엔드 API base URL |
-| `NEXT_PUBLIC_SITE_URL` | OG 이미지 등 메타데이터에 쓰이는 배포 도메인 |
+| 변수                       | 설명                                         |
+| -------------------------- | -------------------------------------------- |
+| `NEXT_PUBLIC_API_BASE_URL` | 백엔드 API base URL                          |
+| `NEXT_PUBLIC_SITE_URL`     | OG 이미지 등 메타데이터에 쓰이는 배포 도메인 |
 
 ## Scripts
 
-| 명령어 | 설명 |
-| --- | --- |
-| `npm run dev` | 개발 서버 실행 |
-| `npm run build` | 프로덕션 빌드 |
-| `npm run start` | 빌드된 앱 실행 |
-| `npm run lint` | ESLint 검사 |
-| `npm run format` | Prettier로 전체 포맷 |
+| 명령어                 | 설명                    |
+| ---------------------- | ----------------------- |
+| `npm run dev`          | 개발 서버 실행          |
+| `npm run build`        | 프로덕션 빌드           |
+| `npm run start`        | 빌드된 앱 실행          |
+| `npm run lint`         | ESLint 검사             |
+| `npm run format`       | Prettier로 전체 포맷    |
 | `npm run format:check` | 포맷 검사만 (수정 없음) |
 
 커밋 시 `husky` + `lint-staged`가 스테이징된 `.js/.jsx/.ts/.tsx` 파일에 자동으로 prettier + eslint를 적용합니다.

@@ -21,6 +21,18 @@
 
   /* State */
   --color-success: #3adb21;
+  --color-error: #de2433;
+
+  /* Space */
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Radius */
+  --radius-8: 8px;
 }
 
 @theme inline {
@@ -46,6 +58,9 @@
   --color-icon-90: var(--color-icon-90);
 
   --color-success: var(--color-success);
+  --color-error: var(--color-error);
+
+  --radius-8: var(--radius-8);
 
   /* Typography: body */
   --text-body-sm: 0.875rem; /* 14 */
@@ -70,6 +85,10 @@
   --text-title-lg--font-weight: 700;
 
   /* Typography: badge */
+  --text-badge-sm: 1rem; /* 16 */
+  --text-badge-sm--line-height: 1;
+  --text-badge-sm--font-weight: 400;
+
   --text-badge-md: 1.125rem; /* 18 */
   --text-badge-md--line-height: 1;
   --text-badge-md--font-weight: 700;

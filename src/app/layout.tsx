@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   ),
-  title: 'K-Test',
-  description: '온라인 화상 시험 응시 서비스',
+  title: 'K-TEST',
+  description: 'Online Korean Test Service',
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
+    <html lang="en" className={`${pretendard.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>
