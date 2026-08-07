@@ -25,20 +25,16 @@ function toImageUrl(imageUrl: string | null): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${imageUrl}`;
 }
 
-// "A. B. C." -> 앞 두 문장은 제목으로 합치고, 나머지 문장들은 불릿으로 쪼갠다.
-function parseTopicPrompt(prompt: string): {
-  title: string;
-  bullets: string[];
-} {
-  const sentences = prompt
-    .split('.')
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const title = `${sentences.slice(0, 2).join('. ')}.`;
-  const bullets = sentences.slice(2);
-  return { title, bullets };
-}
+// ponytail: help_request 문항의 주제 카드 내용은 Figma 디자인 문구로 고정.
+// 백엔드 prompt가 "안전수칙"/"A./B." 구조를 안 내려줘서 일단 하드코딩, 실제 데이터 형태 정해지면 교체할 것.
+const HELP_REQUEST_TOPIC = {
+  instruction: '다음 안전수칙을 읽고 새로 온 동료에게 알려주세요.',
+  cardTitle: '안전수칙',
+  bullets: [
+    'A. 노란 선 안으로 걸어갑니다.',
+    'B. 지게 차 뒤로 지나가지 않습니다.',
+  ],
+};
 
 // ponytail: 백엔드 문항엔 prepSeconds/answerSeconds/mainSeconds/followUpSeconds가 없어서
 // 기존 스텁값 그대로 고정 사용. 백엔드가 타이머 값을 내려주면 교체할 것.
@@ -63,16 +59,15 @@ function toQuestion(
 
   // part별로 문항 형태가 다름 — 일단 picture_description(이미지), help_request(주제 카드) 두 개만 처리.
   if (raw.part === 'help_request') {
-    const { title, bullets } = parseTopicPrompt(raw.prompt);
     return {
       questionId: raw.id,
       moduleId,
       type: 'speaking',
       order,
       situation: '',
-      instruction: raw.prompt,
-      topicTitle: title,
-      topicBullets: bullets,
+      instruction: HELP_REQUEST_TOPIC.instruction,
+      topicTitle: HELP_REQUEST_TOPIC.cardTitle,
+      topicBullets: HELP_REQUEST_TOPIC.bullets,
       prepSeconds: 30,
       answerSeconds: 90,
     };

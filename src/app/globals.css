@@ -21,6 +21,9 @@
 
   /* State */
   --color-success: #3adb21;
+  --color-success-10: #EEFFEC;
+  --color-limit-10: #dfefff;
+  --color-limit: #1581ed;
   --color-error: #de2433;
 
   /* Space */

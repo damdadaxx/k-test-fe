@@ -4,8 +4,8 @@ import type { SessionQuestionResponse } from '@/types/exam';
 // questionCount만큼 순서대로 잘라 섹션으로 취급한다. 실제 섹션 API가 생기면
 // 이 고정 배열 대신 그 응답으로 교체할 것.
 export const SECTIONS = [
-  { moduleId: '1', title: '상황별 말하기', questionCount: 1 },
-  { moduleId: '2', title: '주제 말하기', questionCount: 1 },
+  { moduleId: '1', title: '상황 말하기', questionCount: 1 },
+  { moduleId: '2', title: '읽고 설명하기', questionCount: 1 },
 ] as const;
 
 export const ANSWER_SECONDS_PER_QUESTION = 90;
