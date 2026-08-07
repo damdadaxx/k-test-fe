@@ -1,23 +1,62 @@
 import { apiClient } from './client';
 
-export interface LoginRequest {
+export type UserRole = 'USER' | 'ADMIN';
+
+export interface SignInRequest {
   email: string;
   password: string;
 }
 
-export interface LoginResponse {
+export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  expiresIn: number;
+  userId: string;
+  email: string;
+  role: UserRole;
 }
 
-export interface SignupRequest {
+export interface CheckEmailResponse {
+  available: boolean;
+}
+
+export type IdType = 'PASSPORT' | 'ARC';
+
+export interface SignUpRequest {
   email: string;
   password: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  birthDate: string;
+  idType: IdType;
+  idNumber: string;
+  companyCode?: string;
+  agreedToTerms: boolean;
+  agreedToPrivacyPolicy: boolean;
 }
 
-export const login = (payload: LoginRequest) =>
-  apiClient.post<LoginResponse>('/auth/login', payload).then((res) => res.data);
+export interface AdminSignInRequest {
+  email: string;
+  password: string;
+}
 
-export const signup = (payload: SignupRequest) =>
-  apiClient.post<LoginResponse>('/auth/sign', payload).then((res) => res.data);
+export const checkEmail = (email: string) =>
+  apiClient
+    .get<CheckEmailResponse>('/auth/check-email', { params: { email } })
+    .then((res) => res.data);
+
+export const signIn = (payload: SignInRequest) =>
+  apiClient
+    .post<AuthResponse>('/auth/sign-in', payload)
+    .then((res) => res.data);
+
+export const signUp = (payload: SignUpRequest) =>
+  apiClient
+    .post<AuthResponse>('/auth/sign-up', payload)
+    .then((res) => res.data);
+
+export const adminSignIn = (payload: AdminSignInRequest) =>
+  apiClient
+    .post<AuthResponse>('/auth/admin/sign-in', payload)
+    .then((res) => res.data);
