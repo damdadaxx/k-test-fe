@@ -1,18 +1,18 @@
-import type { KakaoChatQuestionData } from '@/types/exam';
+import type { ChatQuestionData } from '@/types/exam';
 
 import { QuestionPanel } from '../QuestionPanel';
 import { ChatBubble } from './ChatBubble';
 import { ChatInput } from './ChatInput';
-import { useKakaoChat } from './useKakaoChat';
+import { useChatQuestion } from './useChatQuestion';
 
-export function KakaoChatQuestion({
+export function ChatQuestion({
   sessionId,
   question,
 }: {
   sessionId: string;
-  question: KakaoChatQuestionData;
+  question: ChatQuestionData;
 }) {
-  const { messages, sendMessage } = useKakaoChat(
+  const { messages, sendMessage } = useChatQuestion(
     sessionId,
     question.questionId,
   );

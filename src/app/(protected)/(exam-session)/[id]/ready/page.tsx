@@ -4,14 +4,16 @@ import { use } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { SECTIONS } from '@/lib/exam/sections';
+
 import { Button } from '@/components/ui/Button';
 
 export default function ReadyPage({
   params,
 }: {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { sessionId } = use(params);
+  const { id: sessionId } = use(params);
   const router = useRouter();
 
   return (
@@ -20,7 +22,11 @@ export default function ReadyPage({
       <p className="text-sm text-gray-600">
         시작 버튼을 누르면 시험이 시작됩니다.
       </p>
-      <Button onClick={() => router.push(`/${sessionId}/testing/1/1`)}>
+      <Button
+        onClick={() =>
+          router.push(`/${sessionId}/testing/${SECTIONS[0].moduleId}/intro`)
+        }
+      >
         시험 시작
       </Button>
     </main>

@@ -34,7 +34,7 @@ export function WebcamMonitor() {
       autoPlay
       muted
       playsInline
-      className="h-16 w-20 rounded-md border border-gray-300 object-cover"
+      className="size-full object-cover"
     />
   );
 }
