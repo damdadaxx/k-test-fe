@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import Image from 'next/image';
+
+import ImgFacialVerification from '@/app/assets/images/img_facial_verification.svg';
+
 import { cn } from '@/lib/utils/cn';
 
 // ponytail: 실제 얼굴 검증 API 없음 — 정해진 시간 지나면 무조건 통과 처리.
@@ -46,7 +50,7 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
       })
       .catch(() => {
         setErrorMessage(
-          '카메라를 사용할 수 없습니다. 카메라 권한을 확인해주세요.',
+          'Camera cannot be used. Please check camera permissions',
         );
         setPhase('error');
       });
@@ -109,14 +113,9 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
           Let&apos;s take a photo for facial verification
         </h1>
         <p className="text-title-md font-normal text-icon-50">
-          Please remove hats, glasses, and masks.
+          Please remove hats, glasses, and masks
         </p>
-        <div className="relative mt-5 size-82">
-          <span className="absolute left-0 top-0 h-8 w-8 rounded-tl-lg border-l-4 border-t-4 border-green-500" />
-          <span className="absolute right-0 top-0 h-8 w-8 rounded-tr-lg border-r-4 border-t-4 border-green-500" />
-          <span className="absolute bottom-0 left-0 h-8 w-8 rounded-bl-lg border-b-4 border-l-4 border-green-500" />
-          <span className="absolute bottom-0 right-0 h-8 w-8 rounded-br-lg border-b-4 border-r-4 border-green-500" />
-        </div>
+        <Image src={ImgFacialVerification} alt="" className="mt-5 size-82" />
       </div>
     );
   }

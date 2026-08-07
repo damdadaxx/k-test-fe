@@ -26,10 +26,10 @@ export function IdCardUpload({ onUpload }: { onUpload: (file: File) => void }) {
         <img
           src={preview}
           alt="신분증 미리보기"
-          className="h-[226px] w-full rounded-lg border border-[#10b981] object-cover"
+          className="h-[226px] w-full rounded-lg border border-[#10b981] object-cover aspect-424/226 min-w-[424px]"
         />
       ) : (
-        <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-[#9ca3af] bg-neutral-20 p-10">
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-[#9ca3af] bg-neutral-20 p-10 aspect-424/226 min-w-[424px]">
           <Image src={IcUpload} alt="" width={48} height={48} />
           <p className="text-body-md text-[#4b5563]">
             Drag and drop your ID here
