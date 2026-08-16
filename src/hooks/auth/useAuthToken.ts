@@ -1,11 +1,18 @@
 import { useSyncExternalStore } from 'react';
 
-function subscribe() {
-  return () => {};
+import { getAccessToken, TOKEN_CHANGE_EVENT } from '@/lib/auth/tokenStorage';
+
+function subscribe(callback: () => void) {
+  window.addEventListener(TOKEN_CHANGE_EVENT, callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    window.removeEventListener(TOKEN_CHANGE_EVENT, callback);
+    window.removeEventListener('storage', callback);
+  };
 }
 
 function getSnapshot() {
-  return localStorage.getItem('accessToken');
+  return getAccessToken();
 }
 
 // Sentinel distinct from a resolved "no token" (null), so callers don't act

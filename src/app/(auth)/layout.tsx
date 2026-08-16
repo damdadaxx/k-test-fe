@@ -1,7 +1,9 @@
+import { RouteGuard } from '@/components/auth/RouteGuard';
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <RouteGuard mode="guest">{children}</RouteGuard>;
 }
