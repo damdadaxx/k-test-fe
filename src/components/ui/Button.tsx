@@ -6,6 +6,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger';
 }
 
+// TODO: 추후 삭제
 export function Button({
   variant = 'primary',
   className,
