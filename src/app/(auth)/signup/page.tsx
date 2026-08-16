@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { SignUpRequest } from '@/lib/api/auth';
+import { cn } from '@/lib/utils/cn';
 
 import { useCheckEmail, useSignUp } from '@/hooks/auth/useAuth';
 
@@ -196,7 +197,12 @@ export default function SignupPage() {
                 </FormRow>
                 {checkEmail.isSuccess && (
                   <p
-                    className={`text-sm ${checkEmail.data.available ? 'text-green-600' : 'text-error'} pl-30`}
+                    className={cn(
+                      'text-sm pl-30',
+                      checkEmail.data.available
+                        ? 'text-green-600'
+                        : 'text-error',
+                    )}
                   >
                     {checkEmail.data.available
                       ? '사용 가능한 이메일입니다.'

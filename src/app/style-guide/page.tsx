@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils/cn';
+
 const colors = [
   { name: 'primary', hex: '#1b1b1b', className: 'bg-primary' },
   { name: 'white', hex: '#ffffff', className: 'bg-white' },
@@ -60,7 +62,7 @@ export default function StyleGuidePage() {
               key={color.name}
               className="overflow-hidden rounded-lg border border-neutral-30 bg-white"
             >
-              <div className={`h-16 w-full ${color.className}`} />
+              <div className={cn('h-16 w-full', color.className)} />
               <div className="p-3">
                 <p className="text-body-sm font-semibold text-primary">
                   {color.name}

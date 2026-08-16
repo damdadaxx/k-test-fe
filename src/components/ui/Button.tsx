@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes } from 'react';
 
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils/cn';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger';
@@ -13,7 +13,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={clsx(
+      className={cn(
         'px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
         variant === 'primary' && 'bg-yellow-400 text-black hover:bg-yellow-300',
         variant === 'secondary' &&
