@@ -63,6 +63,7 @@ export function HeroSection() {
             width={479}
             height={424}
             alt="landing_image"
+            priority
             className={cn(
               'order-1 max-w-[479px] aspect-479/424 w-full m-auto',
               'desktop:order-2 desktop:mr-0',
