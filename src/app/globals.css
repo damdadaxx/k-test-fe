@@ -9,7 +9,7 @@
   /* Neutral */
   --color-neutral-20: #f1f1f1;
   --color-neutral-30: #dee0e1;
-  --color-neutral-90: #131414;
+  --color-neutral-90: #272929;
 
   /* Text / Icon */
   --color-icon-30: #909090;
@@ -21,26 +21,33 @@
 
   /* State */
   --color-success: #3adb21;
-  --color-success-10: #EEFFEC;
+  --color-success-10: #eeffec;
   --color-limit-10: #dfefff;
   --color-limit: #1581ed;
   --color-error: #de2433;
 
+  /* Surface */
+  --color-surface-selected: rgb(0 0 0 / 5%);
+
   /* Space */
+  --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
   --space-16: 16px;
   --space-20: 20px;
   --space-24: 24px;
   --space-32: 32px;
+  --space-bg-1440-margin: 120px;
 
   /* Radius */
+  --radius-4: 4px;
   --radius-8: 8px;
+  --radius-16: 16px;
+  --radius-20: 20px;
 }
 
 @theme inline {
   --font-sans: var(--font-pretendard);
-  --font-mono: var(--font-geist-mono);
 
   --color-background: var(--color-page-bg);
   --color-foreground: var(--color-primary);
@@ -61,9 +68,17 @@
   --color-icon-90: var(--color-icon-90);
 
   --color-success: var(--color-success);
+  --color-success-10: var(--color-success-10);
+  --color-limit-10: var(--color-limit-10);
+  --color-limit: var(--color-limit);
   --color-error: var(--color-error);
 
+  --color-surface-selected: var(--color-surface-selected);
+
+  --radius-4: var(--radius-4);
   --radius-8: var(--radius-8);
+  --radius-16: var(--radius-16);
+  --radius-20: var(--radius-20);
 
   /* Typography: body */
   --text-body-sm: 0.875rem; /* 14 */
