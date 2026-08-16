@@ -1,97 +1,230 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 
-import type { SignUpRequest } from '@/lib/api/auth';
+import { getErrorMessage } from '@/lib/api/client';
+import { NATIONALITY_OPTIONS } from '@/lib/constants/nationality';
+import { signupSchema, type SignupFormValues } from '@/lib/schemas/signup';
 import { cn } from '@/lib/utils/cn';
 
-import { useCheckEmail, useSignUp } from '@/hooks/auth/useAuth';
+import { useModal } from '@/providers/ModalProvider';
+
+import {
+  useSendEmailCode,
+  useSignUp,
+  useVerifyEmailCode,
+} from '@/hooks/auth/useAuth';
 
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
+import DatePicker from '@/components/common/Form/DatePicker';
+import Dropdown from '@/components/common/Form/Dropdown';
 import FormRow from '@/components/common/Form/FormRow';
 import Input from '@/components/common/Form/Input';
 import Label from '@/components/common/Form/Label';
 import TermCheckbox from '@/components/common/Form/TermCheckbox';
+import {
+  PassportModal,
+  PrivacyModal,
+  TosModal,
+  VoiceDataModal,
+} from '@/components/common/Modal/TermsModals';
 import Header from '@/components/landing/Header';
-import { Button } from '@/components/ui/Button';
+
+const EMAIL_CODE_TTL_SECONDS = 180;
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
 
 export default function SignupPage() {
   const router = useRouter();
   const signUp = useSignUp();
-  const checkEmail = useCheckEmail();
+  const { openModal, closeModal } = useModal();
 
-  const [form, setForm] = useState<SignUpRequest>({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    nationality: '',
-    birthDate: '',
-    idType: 'PASSPORT',
-    idNumber: '',
-    companyCode: '',
-    agreedToTerms: false,
-    agreedToPrivacyPolicy: false,
+  const {
+    register,
+    control,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      nationality: '',
+      birthDate: '',
+      idType: 'PASSPORT',
+      idNumber: '',
+      companyCode: '',
+      agreedToTerms: false,
+      agreedToPrivacyPolicy: false,
+      agreedToPassportProcessing: false,
+      agreedToVoiceDataAiTraining: false,
+    },
   });
-  const [emailChecked, setEmailChecked] = useState(false);
 
-  // TODO: 아이디/전화번호/문자서비스·사업자등록 약관은 SignUpRequest API에 아직 없음.
-  // 백엔드에 필드 추가되면 SignUpRequest에 옮기고 이 로컬 상태는 지울 것.
-  const [username, setUsername] = useState('');
-  const [phone, setPhone] = useState('');
-  const [agreedSmsTerms, setAgreedSmsTerms] = useState(false);
-  const [agreedBusinessInfo, setAgreedBusinessInfo] = useState(false);
+  const sendEmailCode = useSendEmailCode();
+  const verifyEmailCode = useVerifyEmailCode();
 
-  const updateField = <K extends keyof SignUpRequest>(
-    key: K,
-    value: SignUpRequest[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    if (key === 'email') setEmailChecked(false);
+  const [emailSendState, setEmailSendState] = useState<'idle' | 'sent'>('idle');
+  const [verifyState, setVerifyState] = useState<'idle' | 'error' | 'verified'>(
+    'idle',
+  );
+  const [emailCode, setEmailCode] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [sendCodeError, setSendCodeError] = useState<string | null>(null);
+
+  const email = watch('email');
+
+  useEffect(() => {
+    setEmailSendState('idle');
+    setVerifyState('idle');
+    setEmailCode('');
+    setSendCodeError(null);
+  }, [email]);
+
+  useEffect(() => {
+    if (emailSendState !== 'sent' || verifyState === 'verified') return;
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [emailSendState, verifyState]);
+
+  const handleSendEmailCode = () => {
+    setSendCodeError(null);
+    sendEmailCode.mutate(
+      { email },
+      {
+        onSuccess: () => {
+          setEmailSendState('sent');
+          setVerifyState('idle');
+          setEmailCode('');
+          setSecondsLeft(EMAIL_CODE_TTL_SECONDS);
+        },
+        onError: (error) => {
+          setSendCodeError(
+            getErrorMessage(error, 'Failed to send the code. Try again.'),
+          );
+        },
+      },
+    );
   };
 
-  const handleCheckEmail = () => {
-    checkEmail.mutate(form.email, {
-      onSuccess: (res) => setEmailChecked(res.available),
-    });
+  const handleVerifyEmailCode = () => {
+    verifyEmailCode.mutate(
+      { email, code: emailCode },
+      {
+        onSuccess: () => {
+          setVerifyState('verified');
+          clearErrors('email');
+        },
+        onError: () => setVerifyState('error'),
+      },
+    );
   };
 
-  const allAgreed =
-    form.agreedToTerms &&
-    agreedSmsTerms &&
-    agreedBusinessInfo &&
-    form.agreedToPrivacyPolicy;
+  const handleOpenTosModal = () => {
+    openModal(
+      <TosModal
+        onClose={closeModal}
+        onAgree={() => {
+          setValue('agreedToTerms', true, { shouldValidate: true });
+          closeModal();
+        }}
+      />,
+    );
+  };
+
+  const handleOpenPrivacyModal = () => {
+    openModal(
+      <PrivacyModal
+        onClose={closeModal}
+        onAgree={() => {
+          setValue('agreedToPrivacyPolicy', true, { shouldValidate: true });
+          closeModal();
+        }}
+      />,
+    );
+  };
+
+  const handleOpenPassportModal = () => {
+    openModal(
+      <PassportModal
+        onClose={closeModal}
+        onAgree={() => {
+          setValue('agreedToPassportProcessing', true, {
+            shouldValidate: true,
+          });
+          closeModal();
+        }}
+      />,
+    );
+  };
+
+  const handleOpenVoiceDataModal = () => {
+    openModal(
+      <VoiceDataModal
+        onClose={closeModal}
+        onAgree={() => {
+          setValue('agreedToVoiceDataAiTraining', true, {
+            shouldValidate: true,
+          });
+          closeModal();
+        }}
+      />,
+    );
+  };
+
+  const agreedToTerms = watch('agreedToTerms');
+  const agreedToPrivacyPolicy = watch('agreedToPrivacyPolicy');
+  const agreedToPassportProcessing = watch('agreedToPassportProcessing');
+  const agreedToVoiceDataAiTraining = watch('agreedToVoiceDataAiTraining');
+
+  const allAgreed = Boolean(
+    agreedToTerms &&
+    agreedToPrivacyPolicy &&
+    agreedToPassportProcessing &&
+    agreedToVoiceDataAiTraining,
+  );
+
   const handleAgreeAll = (checked: boolean) => {
-    updateField('agreedToTerms', checked);
-    setAgreedSmsTerms(checked);
-    setAgreedBusinessInfo(checked);
-    updateField('agreedToPrivacyPolicy', checked);
+    setValue('agreedToTerms', checked, { shouldValidate: true });
+    setValue('agreedToPrivacyPolicy', checked, { shouldValidate: true });
+    setValue('agreedToPassportProcessing', checked, { shouldValidate: true });
+    setValue('agreedToVoiceDataAiTraining', checked, { shouldValidate: true });
   };
 
-  const canSubmit =
-    emailChecked &&
-    form.password &&
-    username &&
-    phone &&
-    // TODO: 영문 이름/성/국적/생년월일/신분증 — 디자인엔 없지만 API 필수값이라
-    // 상태는 유지. 본인인증 플로우 연결되면 다시 노출.
-    form.firstName &&
-    form.lastName &&
-    form.nationality &&
-    form.birthDate &&
-    form.idNumber &&
-    form.agreedToTerms &&
-    agreedSmsTerms &&
-    agreedBusinessInfo;
+  const termsError =
+    errors.agreedToTerms?.message ||
+    errors.agreedToPrivacyPolicy?.message ||
+    errors.agreedToPassportProcessing?.message;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+  const onSubmit = (data: SignupFormValues) => {
+    if (verifyState !== 'verified') {
+      setError('email', {
+        message: 'Please verify your email before continuing.',
+      });
+      return;
+    }
     signUp.mutate(
-      { ...form, companyCode: form.companyCode || undefined },
-      { onSuccess: () => router.push('/exams') },
+      { ...data, companyCode: data.companyCode || undefined },
+      // TODO: 바로 인증 절차 밟도록 하드 코딩 되어 있음. 추후 논의 후 "/exams"으로 수정
+      { onSuccess: () => router.push('/2/identity') },
     );
   };
 
@@ -100,247 +233,321 @@ export default function SignupPage() {
       <Header />
 
       <section className="flex min-h-screen flex-col items-center bg-page-bg">
-        <div className="flex w-full max-w-190 flex-col items-center gap-6 pt-12.5 pb-20">
-          <h1 className="w-full pl-[20px] text-title-lg text-icon-90">
-            개인 회원가입
-          </h1>
-
+        <div className="flex w-full max-w-190 flex-col items-center pt-12.5 pb-20">
           <form
-            onSubmit={handleSubmit}
-            className="flex w-full flex-col gap-8 rounded-2xl bg-white p-10 shadow-sm"
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex w-full flex-col gap-8 rounded-2xl bg-white p-10"
           >
             <section className="flex w-full flex-col">
               <h2 className="w-full pb-4 text-title-md text-icon-90">
-                기본정보
+                Sign Up
               </h2>
 
               <div className="flex w-full flex-col">
-                <div className="flex items-start w-full gap-5 py-3">
+                <div className="flex w-full items-start gap-5 py-3">
                   <Label
+                    htmlFor="email"
                     type="required"
-                    className="w-25 shrink-0c text-icon-90"
+                    className="h-11.5 w-25 shrink-0 items-center text-icon-90"
                   >
-                    본인 인증
+                    Email
                   </Label>
-                  <div className="flex flex-1 flex-col items-start gap-2">
-                    <label className="flex items-center gap-2 py-1">
-                      <span className="flex size-6 items-center justify-center rounded-full border-2 border-icon-90">
-                        <span className="size-3 rounded-full bg-icon-90" />
-                      </span>
-                      <span className="text-base text-icon-90">본인인증</span>
-                    </label>
-                    <p className="text-sm text-icon-30">
-                      본인명의로 개설된 휴대폰 또는 공동인증서로 인증할 수
-                      있습니다.
-                    </p>
-                    {/* TODO: 실제 본인인증 플로우 연결 전까지는 no-op */}
-                    <ButtonPrimary variant="line" size="sm" width={96}>
-                      인증하기
-                    </ButtonPrimary>
+
+                  <div className="flex flex-1 items-start gap-2">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <div
+                        className={cn(
+                          'flex h-11.5 w-full items-center gap-1 rounded-8 border bg-white py-(--space-12) pr-(--space-8) pl-(--space-16)',
+                          errors.email ? 'border-error' : 'border-neutral-30',
+                        )}
+                      >
+                        <input
+                          id="email"
+                          type="email"
+                          autoComplete="email"
+                          placeholder="name@example.com"
+                          readOnly={emailSendState === 'sent'}
+                          className="min-w-0 flex-1 bg-transparent text-sm text-icon-90 placeholder-icon-30 outline-none"
+                          {...register('email')}
+                        />
+                        {emailSendState === 'sent' &&
+                          verifyState !== 'verified' && (
+                            <span className="shrink-0 text-sm text-icon-30">
+                              {formatCountdown(secondsLeft)}
+                            </span>
+                          )}
+                      </div>
+                      {errors.email && (
+                        <p className="ml-4 text-sm text-error">
+                          {errors.email.message}
+                        </p>
+                      )}
+
+                      {emailSendState === 'sent' && (
+                        <div className="flex w-full flex-col gap-2">
+                          <div
+                            className={cn(
+                              'flex h-11.5 w-full items-center gap-1 rounded-8 border bg-white py-(--space-12) pr-(--space-8) pl-(--space-16)',
+                              verifyState === 'error'
+                                ? 'border-error'
+                                : 'border-neutral-30',
+                            )}
+                          >
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              placeholder="6-digit code"
+                              value={emailCode}
+                              onChange={(e) => {
+                                setEmailCode(e.target.value);
+                                setVerifyState('idle');
+                              }}
+                              disabled={verifyState === 'verified'}
+                              className="min-w-0 flex-1 bg-transparent text-sm text-icon-90 placeholder-icon-30 outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVerifyEmailCode}
+                              disabled={
+                                !emailCode ||
+                                verifyState === 'verified' ||
+                                verifyEmailCode.isPending
+                              }
+                              className={cn(
+                                'shrink-0 cursor-pointer rounded-8 bg-primary p-2 text-sm text-white disabled:opacity-50',
+                                'disabled:cursor-default',
+                              )}
+                            >
+                              Verify
+                            </button>
+                          </div>
+                          {verifyState === 'error' && (
+                            <p className="text-sm text-error">
+                              That code isn&apos;t correct. Check your email and
+                              try again
+                            </p>
+                          )}
+                          {verifyState === 'verified' && (
+                            <p className="text-sm text-green-600">Verified</p>
+                          )}
+                        </div>
+                      )}
+                      {sendCodeError && (
+                        <p className="text-sm text-error">{sendCodeError}</p>
+                      )}
+                    </div>
+
+                    {verifyState !== 'verified' && (
+                      <ButtonPrimary
+                        as="button"
+                        type="button"
+                        variant={emailSendState === 'idle' ? 'fill' : 'line'}
+                        size="sm"
+                        width={79}
+                        onClick={handleSendEmailCode}
+                        disabled={
+                          !email || !!errors.email || sendEmailCode.isPending
+                        }
+                      >
+                        {emailSendState === 'idle' ? 'Send' : 'Resend'}
+                      </ButtonPrimary>
+                    )}
                   </div>
                 </div>
 
-                <FormRow label="아이디" htmlFor="username">
-                  <Input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    placeholder="아이디를 입력하세요"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </FormRow>
-
-                <FormRow label="비밀번호" htmlFor="password">
+                <FormRow label="Password" htmlFor="password">
                   <Input
                     id="password"
-                    name="new-password"
                     type="password"
                     autoComplete="new-password"
-                    placeholder="비밀번호를 입력하세요"
-                    value={form.password}
-                    onChange={(e) => updateField('password', e.target.value)}
+                    placeholder="Enter your password"
+                    error={errors.password?.message}
+                    {...register('password')}
                   />
                 </FormRow>
 
-                <FormRow label="전화번호" htmlFor="phone">
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="전화번호를 입력하세요"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </FormRow>
+                <div className="flex w-full gap-10">
+                  <div className="min-w-0 flex-1">
+                    <FormRow label="First Name" htmlFor="firstName">
+                      <Input
+                        id="firstName"
+                        type="text"
+                        placeholder="GILDONG"
+                        error={errors.firstName?.message}
+                        {...register('firstName')}
+                      />
+                    </FormRow>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <FormRow label="Last Name" htmlFor="lastName">
+                      <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="HONG"
+                        error={errors.lastName?.message}
+                        {...register('lastName')}
+                      />
+                    </FormRow>
+                  </div>
+                </div>
 
-                <FormRow label="이메일" htmlFor="email">
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="name@example.com"
-                    value={form.email}
-                    onChange={(e) => updateField('email', e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleCheckEmail}
-                    disabled={!form.email || checkEmail.isPending}
-                  >
-                    중복확인
-                  </Button>
-                </FormRow>
-                {checkEmail.isSuccess && (
-                  <p
-                    className={cn(
-                      'text-sm pl-30',
-                      checkEmail.data.available
-                        ? 'text-green-600'
-                        : 'text-error',
+                <FormRow label="Date of Birth" htmlFor="birthDate">
+                  <div className="flex w-full flex-col gap-2">
+                    <Controller
+                      name="birthDate"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="birthDate"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                    {errors.birthDate && (
+                      <p className="ml-4 text-sm text-error">
+                        {errors.birthDate.message}
+                      </p>
                     )}
-                  >
-                    {checkEmail.data.available
-                      ? '사용 가능한 이메일입니다.'
-                      : '이미 사용 중인 이메일입니다.'}
-                  </p>
-                )}
-
-                {/* 디자인(node 40000060:3349)에 없는 항목 — 실제 API 필수값이라 상태는 유지, 노출만 보류 */}
-                {/* <FormRow label="영문 이름" htmlFor="firstName">
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="GILDONG"
-                    value={form.firstName}
-                    onChange={(e) => updateField('firstName', e.target.value)}
-                  />
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="HONG"
-                    value={form.lastName}
-                    onChange={(e) => updateField('lastName', e.target.value)}
-                  />
+                  </div>
                 </FormRow>
 
-                <FormRow label="국적" htmlFor="nationality">
-                  <Input
-                    id="nationality"
-                    type="text"
-                    placeholder="KOR"
-                    value={form.nationality}
-                    onChange={(e) => updateField('nationality', e.target.value)}
-                  />
+                <FormRow label="Nationality" htmlFor="nationality">
+                  <div className="flex w-full flex-col gap-2">
+                    <Controller
+                      name="nationality"
+                      control={control}
+                      render={({ field }) => (
+                        <Dropdown
+                          id="nationality"
+                          options={NATIONALITY_OPTIONS}
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                    {errors.nationality && (
+                      <p className="ml-4 text-sm text-error">
+                        {errors.nationality.message}
+                      </p>
+                    )}
+                  </div>
                 </FormRow>
 
-                <FormRow label="생년월일" htmlFor="birthDate">
-                  <Input
-                    id="birthDate"
-                    type="date"
-                    value={form.birthDate}
-                    onChange={(e) => updateField('birthDate', e.target.value)}
-                  />
-                </FormRow>
-
-                <FormRow label="신분증" htmlFor="idNumber">
-                  <select
-                    value={form.idType}
-                    onChange={(e) =>
-                      updateField('idType', e.target.value as IdType)
-                    }
-                    className="rounded-8 bg-neutral-20 p-(--space-16) text-sm text-icon-90 outline-none"
-                  >
-                    <option value="PASSPORT">여권</option>
-                    <option value="ARC">외국인등록증</option>
-                  </select>
+                <FormRow label="Passport Number" htmlFor="idNumber">
                   <Input
                     id="idNumber"
                     type="text"
-                    placeholder="신분증 번호"
-                    value={form.idNumber}
-                    onChange={(e) => updateField('idNumber', e.target.value)}
+                    placeholder="Passport number"
+                    error={errors.idNumber?.message}
+                    {...register('idNumber')}
                   />
                 </FormRow>
-
-                <FormRow label="소속 기업" htmlFor="companyCode">
-                  <Input
-                    id="companyCode"
-                    type="text"
-                    placeholder="기업 코드 (선택)"
-                    value={form.companyCode}
-                    onChange={(e) => updateField('companyCode', e.target.value)}
-                  />
-                </FormRow> */}
               </div>
             </section>
 
             <section className="flex w-full flex-col">
-              <h2 className="flex w-full items-start gap-1 pb-4 text-base font-bold text-icon-90">
-                약관 동의
-                <span className="text-[#ff5c00]">*</span>
+              <h2 className="w-full pb-4 text-base font-bold text-icon-90">
+                Terms of Service Agreement
               </h2>
 
-              <div className="flex w-full flex-col gap-4 rounded-md border border-neutral-30 p-5">
-                <div className="flex flex-col gap-1">
-                  <TermCheckbox
-                    label="전체동의"
-                    checked={allAgreed}
-                    onChange={handleAgreeAll}
-                  />
-                  <p className="pl-7 text-sm text-icon-30">
-                    선택항목 포함 모든 약관에 동의합니다.
-                  </p>
-                </div>
+              <div
+                className={cn(
+                  'flex w-full flex-col gap-4 rounded-md border p-5',
+                  termsError ? 'border-error' : 'border-neutral-30',
+                )}
+              >
+                <TermCheckbox
+                  label="Agree to all"
+                  caption="Includes all required and optional items."
+                  bold
+                  checked={allAgreed}
+                  onChange={handleAgreeAll}
+                />
 
                 <div className="h-px w-full bg-neutral-30" />
-                <TermCheckbox
-                  label="(필수) 서비스 이용약관동의"
-                  checked={form.agreedToTerms}
-                  onChange={(checked) => updateField('agreedToTerms', checked)}
+
+                <Controller
+                  name="agreedToTerms"
+                  control={control}
+                  render={({ field }) => (
+                    <TermCheckbox
+                      label="[Required]  I am 18 or older and agree to the Terms of Service"
+                      showChevron
+                      checked={field.value}
+                      onChange={field.onChange}
+                      onOpenDetail={handleOpenTosModal}
+                    />
+                  )}
                 />
-                <TermCheckbox
-                  label="(필수) 문자서비스 이용약관 동의"
-                  checked={agreedSmsTerms}
-                  onChange={setAgreedSmsTerms}
+                <Controller
+                  name="agreedToPrivacyPolicy"
+                  control={control}
+                  render={({ field }) => (
+                    <TermCheckbox
+                      label="[Required]  Collection, use, and overseas transfer of personal data"
+                      showChevron
+                      checked={field.value}
+                      onChange={field.onChange}
+                      onOpenDetail={handleOpenPrivacyModal}
+                    />
+                  )}
                 />
-                <TermCheckbox
-                  label="(필수) 사업자등록정보 수집 및 이용 동의"
-                  checked={agreedBusinessInfo}
-                  onChange={setAgreedBusinessInfo}
+                <Controller
+                  name="agreedToPassportProcessing"
+                  control={control}
+                  render={({ field }) => (
+                    <TermCheckbox
+                      label="[Required]  Processing of passport number"
+                      showChevron
+                      checked={field.value}
+                      onChange={field.onChange}
+                      onOpenDetail={handleOpenPassportModal}
+                    />
+                  )}
                 />
-                <div className="flex flex-col gap-1">
-                  <TermCheckbox
-                    label="(선택) 개인정보수집 및 이용 동의"
-                    checked={form.agreedToPrivacyPolicy}
-                    onChange={(checked) =>
-                      updateField('agreedToPrivacyPolicy', checked)
-                    }
-                  />
-                  <p className="pl-7 text-sm text-icon-30">
-                    어떤 개인정보로 활용할수 있을까
-                  </p>
-                </div>
+
+                <div className="h-px w-full bg-neutral-30" />
+
+                <Controller
+                  name="agreedToVoiceDataAiTraining"
+                  control={control}
+                  render={({ field }) => (
+                    <TermCheckbox
+                      label="[Optional]  Use of voice data for AI model training"
+                      caption="Declining does not affect your test or score"
+                      showChevron
+                      checked={field.value ?? false}
+                      onChange={field.onChange}
+                      onOpenDetail={handleOpenVoiceDataModal}
+                    />
+                  )}
+                />
               </div>
+              {termsError && (
+                <p className="mt-2 ml-4 text-sm text-error">
+                  Please agree to all required terms.
+                </p>
+              )}
             </section>
 
             {signUp.isError && (
               <p className="text-sm text-error">
-                가입에 실패했습니다. 입력값을 확인해주세요.
+                {getErrorMessage(
+                  signUp.error,
+                  'Sign up failed. Please check your input.',
+                )}
               </p>
             )}
 
             <div className="flex w-full items-start justify-center pt-5">
               <ButtonPrimary
                 type="submit"
-                disabled={!canSubmit || signUp.isPending}
+                disabled={signUp.isPending}
                 width={122}
               >
-                가입하기
+                Register
               </ButtonPrimary>
             </div>
           </form>
