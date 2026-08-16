@@ -11,8 +11,6 @@ import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import Input from '@/components/common/Form/Input';
 import Label from '@/components/common/Form/Label';
 
-import { ModalBase } from './ModalBase';
-
 type LoginFormValues = {
   email: string;
   password: string;
@@ -37,7 +35,7 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <ModalBase onClose={onClose} className="flex w-110 flex-col gap-6">
+    <>
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-black">Log In</h2>
         <p className="text-sm text-gray-500">Enter your email and password.</p>
@@ -96,6 +94,6 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </form>
-    </ModalBase>
+    </>
   );
 }

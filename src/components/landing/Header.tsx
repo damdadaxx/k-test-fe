@@ -53,7 +53,12 @@ export default function Header() {
                 variant="line"
                 size="sm"
                 width={140}
-                onClick={() => openModal(<ModalLogin onClose={closeModal} />)}
+                onClick={() =>
+                  openModal(
+                    <ModalLogin onClose={closeModal} />,
+                    'flex w-110 flex-col gap-6',
+                  )
+                }
               >
                 Log In
               </ButtonPrimary>
