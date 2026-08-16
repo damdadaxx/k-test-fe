@@ -7,6 +7,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // TODO: 디자인 수정되면 작업하기
   return (
     <html lang="ko">
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">

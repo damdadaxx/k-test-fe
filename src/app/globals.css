@@ -47,8 +47,18 @@
 }
 
 @theme inline {
+  /* -------- Breakpoints (mobile-first, min-width) --------
+    기본 상태 = 375px 미만 초소형. mobile: / tablet: / desktop: 접두사로 그 이상 화면에 적용.
+     예) className="text-body-sm tablet:text-body-md" */
+  --breakpoint-*: initial;
+  --breakpoint-mobile: 375px;
+  --breakpoint-tablet: 744px;
+  --breakpoint-desktop: 1024px;
+
+  /* Font Style */
   --font-sans: var(--font-pretendard);
 
+  /* Color Variant */
   --color-background: var(--color-page-bg);
   --color-foreground: var(--color-primary);
 
@@ -75,6 +85,7 @@
 
   --color-surface-selected: var(--color-surface-selected);
 
+  /* Radius Variant */
   --radius-4: var(--radius-4);
   --radius-8: var(--radius-8);
   --radius-16: var(--radius-16);
