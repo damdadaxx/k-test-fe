@@ -5,29 +5,27 @@ import { useEffect } from 'react';
 import { cn } from '@/lib/utils/cn';
 
 type ModalBaseProps = {
-  isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
 };
 
-export function ModalBase({
-  isOpen,
-  onClose,
-  children,
-  className,
-}: ModalBaseProps) {
+export function ModalBase({ onClose, children, className }: ModalBaseProps) {
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
