@@ -2,21 +2,18 @@
 
 import { useForm } from 'react-hook-form';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+import { loginSchema, type LoginFormValues } from '@/lib/schemas/login';
 
 import { useSignIn } from '@/hooks/auth/useAuth';
 
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import Input from '@/components/common/Form/Input';
 import Label from '@/components/common/Form/Label';
-
-import { ModalBase } from './ModalBase';
-
-type LoginFormValues = {
-  email: string;
-  password: string;
-};
+import { ModalBase } from '@/components/common/Modal/ModalBase';
 
 export function ModalLogin({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -25,12 +22,17 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({ mode: 'onChange' });
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
 
   const onSubmit = (values: LoginFormValues) => {
     signIn.mutate(values, {
       onSuccess: () => {
         onClose();
+        // TODO: 임시 시험 id 사용. /[id]/identity로 수정하기
         router.replace('/2/identity');
       },
     });
@@ -51,13 +53,7 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
             type="email"
             placeholder="name@example.com"
             error={errors.email?.message}
-            {...register('email', {
-              required: 'Enter your Email',
-              pattern: {
-                value: /^\S+@\S+\.\S+$/,
-                message: 'Invalid email address',
-              },
-            })}
+            {...register('email')}
           />
         </div>
 
@@ -68,13 +64,7 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
             type="password"
             placeholder="Enter your password"
             error={errors.password?.message}
-            {...register('password', {
-              required: 'Enter your password',
-              minLength: {
-                value: 8,
-                message: 'Incorrect password',
-              },
-            })}
+            {...register('password')}
           />
         </div>
 
@@ -90,7 +80,11 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
           </ButtonPrimary>
           <div className="flex justify-center gap-3 text-sm">
             <span className="text-[#6B7280]">Don&apos;t have an account?</span>
-            <Link href="/signup" className="font-bold text-black">
+            <Link
+              href="/signup"
+              className="font-bold text-black"
+              onClick={onClose}
+            >
               Sign Up
             </Link>
           </div>

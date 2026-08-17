@@ -19,17 +19,24 @@ export function ModalBase({ onClose, children, className }: ModalBaseProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
     <div
-      className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center bg-black/50',
-      )}
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={handleBackdropClick}
     >
-      <div
-        className={cn('rounded-xl bg-white p-(--space-32)', className)}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={cn('rounded-xl bg-white p-(--space-32)', className)}>
         {children}
       </div>
     </div>

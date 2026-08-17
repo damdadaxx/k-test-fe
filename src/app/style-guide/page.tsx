@@ -1,10 +1,12 @@
+import { cn } from '@/lib/utils/cn';
+
 const colors = [
   { name: 'primary', hex: '#1b1b1b', className: 'bg-primary' },
   { name: 'white', hex: '#ffffff', className: 'bg-white' },
   { name: 'page-bg', hex: '#f0f1f1', className: 'bg-page-bg' },
   { name: 'neutral-20', hex: '#f1f1f1', className: 'bg-neutral-20' },
   { name: 'neutral-30', hex: '#dee0e1', className: 'bg-neutral-30' },
-  { name: 'neutral-90', hex: '#131414', className: 'bg-neutral-90' },
+  { name: 'neutral-90', hex: '#272929', className: 'bg-neutral-90' },
   { name: 'icon-30', hex: '#909090', className: 'bg-icon-30' },
   { name: 'icon-40', hex: '#7d7d7d', className: 'bg-icon-40' },
   { name: 'icon-50', hex: '#666666', className: 'bg-icon-50' },
@@ -46,9 +48,7 @@ export default function StyleGuidePage() {
         <h2 className="text-title-md text-primary">폰트 확인</h2>
         <div className="mt-4 space-y-2 rounded-lg border border-neutral-30 bg-white p-6">
           <p className="text-title-lg">가나다라마바사 ABCDEFG 0123456789</p>
-          <p className="font-mono text-body-md">
-            font-mono: 가나다라 ABCDEFG 0123456789 (Geist Mono)
-          </p>
+          <p className="text-body-md">가나다라 ABCDEFG 0123456789</p>
         </div>
       </section>
 
@@ -60,7 +60,7 @@ export default function StyleGuidePage() {
               key={color.name}
               className="overflow-hidden rounded-lg border border-neutral-30 bg-white"
             >
-              <div className={`h-16 w-full ${color.className}`} />
+              <div className={cn('h-16 w-full', color.className)} />
               <div className="p-3">
                 <p className="text-body-sm font-semibold text-primary">
                   {color.name}
