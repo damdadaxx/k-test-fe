@@ -3,24 +3,29 @@ import { useMutation } from '@tanstack/react-query';
 import {
   adminSignIn,
   checkEmail,
+  sendEmailCode,
   signIn,
   signUp,
+  verifyEmailCode,
   type AdminSignInRequest,
   type AuthResponse,
+  type SendEmailCodeRequest,
   type SignInRequest,
   type SignUpRequest,
+  type VerifyEmailCodeRequest,
 } from '@/lib/api/auth';
+import { clearTokens, setTokens } from '@/lib/auth/tokenStorage';
 
 function persistAuth(data: AuthResponse) {
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
-  localStorage.setItem('role', data.role);
+  setTokens({
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    role: data.role,
+  });
 }
 
 export function signOut() {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('role');
+  clearTokens();
 }
 
 export function useSignIn() {
@@ -47,5 +52,17 @@ export function useSignUp() {
 export function useCheckEmail() {
   return useMutation({
     mutationFn: (email: string) => checkEmail(email),
+  });
+}
+
+export function useSendEmailCode() {
+  return useMutation({
+    mutationFn: (payload: SendEmailCodeRequest) => sendEmailCode(payload),
+  });
+}
+
+export function useVerifyEmailCode() {
+  return useMutation({
+    mutationFn: (payload: VerifyEmailCodeRequest) => verifyEmailCode(payload),
   });
 }

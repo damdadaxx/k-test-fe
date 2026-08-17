@@ -6,18 +6,13 @@ import { useRouter } from 'next/navigation';
 
 import type { ExamListItem } from '@/types/exam';
 
+import { getErrorMessage } from '@/lib/api/client';
+
 import { useApplyExam, useExams } from '@/hooks/exam/useExams';
 
 import Header from '@/components/landing/Header';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
-
-function getErrorMessage(error: unknown): string {
-  return (
-    (error as { response?: { data?: { message?: string } } }).response?.data
-      ?.message ?? ''
-  );
-}
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);

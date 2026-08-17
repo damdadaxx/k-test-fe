@@ -1,6 +1,6 @@
 'use client';
 
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils/cn';
 
 interface WritingPanelProps {
   stepNumber: number;
@@ -42,7 +42,7 @@ export function WritingPanel({
             onChange={(e) => onChange(e.target.value)}
             readOnly={submitted}
             placeholder="답변을 입력하세요"
-            className={clsx(
+            className={cn(
               'h-40 flex-1 resize-none rounded-md border border-neutral-30 p-3 text-body-sm text-primary outline-none focus:border-primary',
               submitted && 'bg-neutral-20',
             )}
@@ -53,7 +53,7 @@ export function WritingPanel({
                 type="button"
                 onClick={onSubmit}
                 disabled={!value.trim() || isSubmitting}
-                className={clsx(
+                className={cn(
                   'rounded-md px-4 py-2 text-body-sm font-semibold transition-colors',
                   value.trim()
                     ? 'bg-primary text-white hover:bg-icon-90'

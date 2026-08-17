@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import ImgLogo from '@/app/assets/images/img_logo.svg';
 
@@ -16,8 +16,10 @@ import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { openModal, closeModal } = useModal();
   const token = useAuthToken();
+  const isResolved = token !== undefined;
   const isLoggedIn = Boolean(token);
 
   const handleSignOut = () => {
@@ -38,7 +40,7 @@ export default function Header() {
         </Link>
 
         <nav className="flex items-center gap-5">
-          {isLoggedIn ? (
+          {!isResolved ? null : isLoggedIn ? (
             <ButtonPrimary
               variant="line"
               size="sm"
@@ -57,9 +59,11 @@ export default function Header() {
               >
                 Log In
               </ButtonPrimary>
-              <ButtonPrimary href="/signup" as="link" size="sm" width={140}>
-                Sing Up
-              </ButtonPrimary>
+              {pathname !== '/signup' && (
+                <ButtonPrimary href="/signup" as="link" size="sm" width={140}>
+                  Sing Up
+                </ButtonPrimary>
+              )}
             </>
           )}
         </nav>
