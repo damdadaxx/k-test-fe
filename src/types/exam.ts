@@ -18,6 +18,20 @@ export interface ApplyExamResponse {
   appliedAt: string;
 }
 
+export type SessionStatus = 'INPROGRESS' | 'SUBMITTED' | 'EXPIRED' | 'BLOCKED';
+
+// GET /mypage — 내가 신청한 회차 현황. appliedAt 있으면 신청함, sessionStatus로 진행 단계 구분.
+export interface MyExamItem {
+  examId: string;
+  roundName: string;
+  openAt: string;
+  closeAt: string;
+  examStatus: ExamStatus;
+  appliedAt: string;
+  examSessionId: string | null;
+  sessionStatus: SessionStatus | null;
+}
+
 export interface StartExamSessionResponse {
   id: string;
   examId: string;
