@@ -9,7 +9,7 @@ type Size = 'sm' | 'md';
 type Width = number | `${number}` | 'full';
 
 const variantStyle: Record<Variant, string> = {
-  fill: 'bg-primary text-white',
+  fill: 'bg-primary text-white disabled:bg-[#DEE0E1] disabled:text-icon-40 disabled:cursor-not-allowed',
   line: 'border border-primary bg-white text-primary',
 };
 
