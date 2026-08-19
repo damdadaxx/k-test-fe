@@ -6,13 +6,13 @@ import Image from 'next/image';
 
 import ImgFacialVerification from '@/app/assets/images/img_facial_verification.svg';
 
+import { getErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 
-// ponytail: 실제 얼굴 검증 API 없음 — 정해진 시간 지나면 무조건 통과 처리.
-// 검증 API 붙으면 ALIGN_DELAY_MS 자동전환 대신 실제 얼굴 인식 신호로 트리거하고,
-// verifying은 실제 응답 기다리다 실패 시 error phase로 보낼 것.
+import ErrorDisplay from '@/components/common/Display/ErrorDisplay';
+
+// 프레임에 얼굴이 맞춰졌다고 보고 자동 캡처하기까지의 시간.
 const ALIGN_DELAY_MS = 4000;
-const VERIFY_DELAY_MS = 1500;
 const DIM_OVERLAY_MS = 2000;
 
 type Phase = 'idle' | 'aligning' | 'verifying' | 'complete' | 'error';
@@ -25,18 +25,24 @@ function StatusPill({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
+// onVerify: 캡처한 얼굴 blob을 넘겨 신분증-얼굴 대조를 수행하고 matched 여부를 돌려준다.
+export function WebcamCapture({
+  onVerify,
+}: {
+  onVerify: (faceBlob: Blob) => Promise<boolean>;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const onCaptureRef = useRef(onCapture);
+  const onVerifyRef = useRef(onVerify);
   useEffect(() => {
-    onCaptureRef.current = onCapture;
-  }, [onCapture]);
+    onVerifyRef.current = onVerify;
+  }, [onVerify]);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [checkVisible, setCheckVisible] = useState(false);
   const [showDim, setShowDim] = useState(false);
+  const faceBlobRef = useRef<Blob | null>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -77,26 +83,61 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
     const timer = setTimeout(() => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (video && canvas) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d')?.drawImage(video, 0, 0);
+      if (!video || !canvas) {
+        setErrorMessage('Failed to capture face. Please try again.');
+        setPhase('error');
+        return;
       }
-      setPhase('verifying');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')?.drawImage(video, 0, 0);
+      // toBlob는 비동기라, blob이 준비된 뒤에 verifying으로 넘어가야 대조에 넘길 게 있다.
+      canvas.toBlob((blob) => {
+        faceBlobRef.current = blob;
+        setPhase('verifying');
+      }, 'image/jpeg');
     }, ALIGN_DELAY_MS);
 
     return () => clearTimeout(timer);
   }, [phase]);
 
+  // 캡처한 얼굴로 실제 대조 요청. matched면 complete, 아니면 error로 재촬영 유도.
   useEffect(() => {
     if (phase !== 'verifying') return;
 
-    const timer = setTimeout(() => {
-      setPhase('complete');
-      onCaptureRef.current();
-    }, VERIFY_DELAY_MS);
+    let cancelled = false;
+    const run = async () => {
+      const blob = faceBlobRef.current;
+      if (!blob) {
+        if (!cancelled) {
+          setErrorMessage('Failed to capture face. Please try again.');
+          setPhase('error');
+        }
+        return;
+      }
+      try {
+        const matched = await onVerifyRef.current(blob);
+        if (cancelled) return;
+        if (matched) {
+          setPhase('complete');
+        } else {
+          setErrorMessage(
+            'Face does not match the ID. Please try again with better lighting.',
+          );
+          setPhase('error');
+        }
+      } catch (error) {
+        if (cancelled) return;
+        // 409 등 백엔드 비즈니스 오류는 사용자에게 보여줘도 되는 message로 내려온다.
+        setErrorMessage(getErrorMessage(error, 'Verification failed.'));
+        setPhase('error');
+      }
+    };
+    run();
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+    };
   }, [phase]);
 
   // 체크마크가 뙇 나타나지 않고 살짝 커지면서 나타나도록.
@@ -121,17 +162,28 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
   }
 
   if (phase === 'error') {
-    return <p className="text-center text-sm text-red-500">{errorMessage}</p>;
+    return (
+      <ErrorDisplay
+        message={errorMessage}
+        onClick={() => {
+          faceBlobRef.current = null;
+          setErrorMessage('');
+          setPhase('aligning');
+        }}
+      />
+    );
   }
 
   return (
     <div className="flex flex-col items-center gap-5">
+      {/* 안내 문구 */}
       <StatusPill>
         {phase === 'aligning' && 'Align your face within the frame'}
         {phase === 'verifying' && 'Verifying...'}
-        {phase === 'complete' && 'Scan and photo capture complete'}
+        {phase === 'complete' && 'ID verification complete'}
       </StatusPill>
 
+      {/* 웹캠 섹션 */}
       <div className="relative size-82 overflow-hidden rounded-2xl border-4 border-icon-90">
         <video
           ref={videoRef}
@@ -158,7 +210,7 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
         {phase === 'complete' ? (
           <span
             className={cn(
-              'absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-green-500 transition-all duration-300 ease-out',
+              'absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-success transition-all duration-300 ease-out',
               checkVisible ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
             )}
           >
@@ -173,9 +225,9 @@ export function WebcamCapture({ onCapture }: { onCapture: () => void }) {
             </svg>
           </span>
         ) : (
-          <span className="absolute left-1/2 top-1/2 size-50 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-green-500">
+          <span className="absolute left-1/2 top-1/2 size-50 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-success">
             {phase === 'verifying' && (
-              <span className="absolute inset-0 animate-ping rounded-full border-2 border-green-500" />
+              <span className="absolute inset-0 animate-ping rounded-full border-2 border-success" />
             )}
           </span>
         )}
