@@ -6,16 +6,27 @@ import Image from 'next/image';
 
 import IcEarGuide from '@/app/assets/icons/icon_ear_guide.svg';
 
+import { getErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 
-// ponytail: 실제 귀 인식 API 없음 — 정해진 시간 지나면 무조건 통과 처리.
-// 검증 API 붙으면 자동전환 대신 실제 인식 신호로 트리거하고, 실패 시 notVisible로 보낼 것.
+import ErrorDisplay from '@/components/common/Display/ErrorDisplay';
+
 const ALIGN_DELAY_MS = 4000;
 const CAPTURED_HOLD_MS = 1200;
 const DIM_OVERLAY_MS = 2000;
+// 이어폰 감지 시 "Earphones detected" 노출 후 이 시간 뒤 스캔 처음(얼굴인식_05)으로 리셋.
+const DETECTED_RESET_MS = 3000;
 
 type Side = 'right' | 'left';
-type Phase = 'idle' | 'aligning' | 'notVisible' | 'captured' | 'done' | 'error';
+type Phase =
+  | 'idle'
+  | 'aligning'
+  | 'notVisible'
+  | 'captured'
+  | 'verifying'
+  | 'detected'
+  | 'notDetected'
+  | 'error';
 
 function StatusPill({ children }: { children: React.ReactNode }) {
   return (
@@ -52,17 +63,18 @@ function TurnHeadGuide() {
   );
 }
 
+// onDetect: 양쪽 귀 blob을 넘겨 이어폰 감지를 수행하고 earphoneDetected 여부를 돌려준다.
 export function EarCapture({
-  onCapture,
+  onDetect,
 }: {
-  onCapture: (leftEarImage: Blob, rightEarImage: Blob) => void;
+  onDetect: (leftEarImage: Blob, rightEarImage: Blob) => Promise<boolean>;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const onCaptureRef = useRef(onCapture);
+  const onDetectRef = useRef(onDetect);
   useEffect(() => {
-    onCaptureRef.current = onCapture;
-  }, [onCapture]);
+    onDetectRef.current = onDetect;
+  }, [onDetect]);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [side, setSide] = useState<Side>('right');
@@ -144,18 +156,78 @@ export function EarCapture({
         return;
       }
 
-      setPhase('done');
-      const { right, left } = blobsRef.current;
-      if (right && left) onCaptureRef.current(left, right);
+      // 양쪽 귀 캡처 완료 → 이어폰 감지 단계로.
+      setPhase('verifying');
     }, CAPTURED_HOLD_MS);
 
     return () => clearTimeout(timer);
   }, [phase, side]);
 
+  // 양쪽 귀 blob으로 실제 이어폰 감지 → 착용됨(detected) / 미착용(notDetected) 분기.
+  useEffect(() => {
+    if (phase !== 'verifying') return;
+
+    let cancelled = false;
+    const run = async () => {
+      const { left, right } = blobsRef.current;
+      if (!left || !right) {
+        if (!cancelled) {
+          setErrorMessage(
+            '귀 이미지를 캡처하지 못했습니다. 다시 시도해주세요.',
+          );
+          setPhase('error');
+        }
+        return;
+      }
+      try {
+        const detected = await onDetectRef.current(left, right);
+        if (cancelled) return;
+        setPhase(detected ? 'detected' : 'notDetected');
+      } catch (error) {
+        if (cancelled) return;
+        setErrorMessage(
+          getErrorMessage(
+            error,
+            '이어폰 감지에 실패했습니다. 다시 시도해주세요.',
+          ),
+        );
+        setPhase('error');
+      }
+    };
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase]);
+
+  // 이어폰 착용 감지 → 안내 후 스캔 처음(오른쪽 귀)으로 리셋해 재촬영 유도.
+  useEffect(() => {
+    if (phase !== 'detected') return;
+
+    const timer = setTimeout(() => {
+      blobsRef.current = {};
+      setSide('right');
+      setPhase('aligning');
+    }, DETECTED_RESET_MS);
+
+    return () => clearTimeout(timer);
+  }, [phase]);
+
   if (phase === 'idle') return null;
 
   if (phase === 'error') {
-    return <p className="text-center text-sm text-red-500">{errorMessage}</p>;
+    return (
+      <ErrorDisplay
+        message={errorMessage}
+        onClick={() => {
+          blobsRef.current = {};
+          setSide('right');
+          setErrorMessage('');
+          setPhase('aligning');
+        }}
+      />
+    );
   }
 
   const label = side === 'right' ? 'right' : 'left';
@@ -166,7 +238,9 @@ export function EarCapture({
         {phase === 'aligning' && `Show your ${label} ear to the webcam.`}
         {phase === 'notVisible' && `Turn your head to show your ${label} ear.`}
         {phase === 'captured' && 'Scan and photo capture complete'}
-        {phase === 'done' && 'Scan complete.'}
+        {phase === 'verifying' && 'Verifying...'}
+        {phase === 'detected' && 'Earphones detected'}
+        {phase === 'notDetected' && 'No earphones detected'}
       </StatusPill>
 
       <div className="relative size-82 overflow-hidden rounded-2xl border-4 border-icon-90">
@@ -177,7 +251,7 @@ export function EarCapture({
           playsInline
           className={cn(
             'size-full object-cover transition-[filter] duration-500',
-            (phase === 'captured' || phase === 'done') && 'blur-sm',
+            phase !== 'aligning' && phase !== 'notVisible' && 'blur-sm',
           )}
         />
         <div
@@ -194,8 +268,25 @@ export function EarCapture({
 
         {phase === 'aligning' && <EarGuide side={side} />}
         {phase === 'notVisible' && <TurnHeadGuide />}
-        {(phase === 'captured' || phase === 'done') && (
-          <span className="absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-green-500">
+        {phase === 'verifying' && (
+          <span className="absolute left-1/2 top-1/2 size-50 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-success">
+            <span className="absolute inset-0 animate-ping rounded-full border-2 border-success" />
+          </span>
+        )}
+        {phase === 'detected' && (
+          <span className="absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-error">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="white"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+        )}
+        {(phase === 'captured' || phase === 'notDetected') && (
+          <span className="absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-success">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
               <path
                 d="M5 13l4 4L19 7"

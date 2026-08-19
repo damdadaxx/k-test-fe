@@ -2,6 +2,7 @@ import type {
   AnswerResponse,
   ApplyExamResponse,
   ExamListItem,
+  MyExamItem,
   SaveAnswerRequest,
   SessionQuestionResponse,
   StartExamSessionResponse,
@@ -12,6 +13,10 @@ import { apiClient } from './client';
 
 export const getExams = () =>
   apiClient.get<ExamListItem[]>('/exams').then((res) => res.data);
+
+// 내가 신청한 회차 현황 (신청여부/세션상태). /exams에서 신청완료 회차 판별에 쓴다.
+export const getMyExams = () =>
+  apiClient.get<MyExamItem[]>('/mypage').then((res) => res.data);
 
 export const applyExam = (examId: string) =>
   apiClient

@@ -51,8 +51,7 @@ export function HeroSection() {
                 Get your results within 48 hours after the test.
               </CheckListItem>
             </ul>
-            {/* TODO: href 변경하기 */}
-            <ButtonPrimary as="link" href="/2/identity">
+            <ButtonPrimary as="link" href="/exams">
               Take Test
             </ButtonPrimary>
           </div>

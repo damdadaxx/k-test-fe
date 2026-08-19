@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { useMutation } from '@tanstack/react-query';
 
 import { getIdCardUploadUrl, verifyIdCard } from '@/lib/api/identity';
@@ -8,7 +6,9 @@ import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 import { useSessionStore } from '@/store/sessionStore';
 
 export function useIdentityVerify(examId: string) {
-  const [idCardPath, setIdCardPath] = useState<string | null>(null);
+  // idCardPath는 identity → face-check 라우트 이동을 넘어 유지돼야 해서 스토어에 둔다.
+  const idCardPath = useSessionStore((state) => state.idCardPath);
+  const setIdCardPath = useSessionStore((state) => state.setIdCardPath);
   const setIdentityVerified = useSessionStore(
     (state) => state.setIdentityVerified,
   );
