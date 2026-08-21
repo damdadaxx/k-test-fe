@@ -56,6 +56,8 @@ function getButtonState(
     return { label: '시간초과', disabled: true, action: null };
   if (status === 'BLOCKED')
     return { label: '응시제한', disabled: true, action: null };
+  if (status === 'DISQUALIFIED')
+    return { label: '실격', disabled: true, action: null };
   if (status === 'INPROGRESS')
     return { label: '이어서 풀기', disabled: false, action: 'continue' };
 

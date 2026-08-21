@@ -16,7 +16,8 @@ export interface ApplyExamResponse {
   appliedAt: string;
 }
 
-export type SessionStatus = 'INPROGRESS' | 'SUBMITTED' | 'EXPIRED' | 'BLOCKED';
+export type SessionStatus =
+  'INPROGRESS' | 'SUBMITTED' | 'EXPIRED' | 'BLOCKED' | 'DISQUALIFIED';
 
 // GET /mypage — 내가 신청한 회차 현황. appliedAt 있으면 신청함, sessionStatus로 진행 단계 구분.
 export interface MyExamItem {

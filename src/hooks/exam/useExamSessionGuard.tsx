@@ -15,6 +15,7 @@ import { ModalBase } from '@/components/common/Modal/ModalBase';
 // 종료/차단 세션 진입 시 보여줄 안내 문구.
 const STATUS_MESSAGE: Record<string, string> = {
   BLOCKED: '반복적인 재접속으로 시험 응시가 제한되었습니다.',
+  DISQUALIFIED: '부정행위가 감지되어 시험이 실격 처리되었습니다.',
   SUBMITTED: '이미 종료된 시험입니다.',
   EXPIRED: '이미 종료된 시험입니다.',
 };
