@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -10,80 +10,59 @@ import type { Question, SessionQuestionResponse } from '@/types/exam';
 import { getSessionQuestions } from '@/lib/api/exam';
 import { getNextSection, getSectionQuestions } from '@/lib/exam/sections';
 
+import { useExamSessionGuard } from '@/hooks/exam/useExamSessionGuard';
+
 import { ExamSessionHeader } from '@/components/common/ExamSessionHeader/ExamSessionHeader';
 import { NextStepButton } from '@/components/common/Footer/NextStepButton';
-import { QuestionRenderer } from '@/components/question/QuestionRenderer';
-
-// TODO: 문제 유형 추가
-const GATED_TYPES: Question['type'][] = ['speaking', 'writing'];
+import { SpeakingQuestion } from '@/components/question/SpeakingQuestion/SpeakingQuestion';
 
 // 백엔드 imageUrl은 "버킷/경로" 형태의 스토리지 상대 경로라서 프론트에서 Supabase public URL로 변환한다
-function toImageUrl(imageUrl: string | null): string {
+function toImageUrl(imageUrl: string): string {
   if (!imageUrl) return '';
   if (imageUrl.startsWith('http')) return imageUrl;
 
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${imageUrl}`;
 }
 
-// ponytail: help_request 문항의 주제 카드 내용은 Figma 디자인 문구로 고정.
-// 백엔드 prompt가 "안전수칙"/"A./B." 구조를 안 내려줘서 일단 하드코딩, 실제 데이터 형태 정해지면 교체할 것.
-const HELP_REQUEST_TOPIC = {
-  instruction: '다음 안전수칙을 읽고 새로 온 동료에게 알려주세요.',
-  cardTitle: '안전수칙',
-  bullets: [
-    'A. 노란 선 안으로 걸어갑니다.',
-    'B. 지게 차 뒤로 지나가지 않습니다.',
-  ],
-};
-
-// ponytail: 백엔드 문항엔 prepSeconds/answerSeconds/mainSeconds/followUpSeconds가 없어서
-// 기존 스텁값 그대로 고정 사용. 백엔드가 타이머 값을 내려주면 교체할 것.
+// 백엔드 문항(part별)을 화면 렌더 모델(Question)로 변환. 시간/지시문/이미지/안전수칙은
+// 모두 응답에서 읽는다. (오디오 문항 렌더는 다음 단계에서 처리)
 function toQuestion(
   raw: SessionQuestionResponse,
   moduleId: string,
   order: number,
 ): Question {
-  if (raw.mode === 'writing') {
-    return {
-      questionId: raw.id,
-      moduleId,
-      type: 'writing',
-      order,
-      situation: '',
-      instruction: raw.prompt,
-      followUpInstruction: raw.prompt,
-      mainSeconds: 300,
-      followUpSeconds: 180,
-    };
-  }
-
-  // part별로 문항 형태가 다름 — 일단 picture_description(이미지), help_request(주제 카드) 두 개만 처리.
-  if (raw.part === 'help_request') {
-    return {
-      questionId: raw.id,
-      moduleId,
-      type: 'speaking',
-      order,
-      situation: '',
-      instruction: HELP_REQUEST_TOPIC.instruction,
-      topicTitle: HELP_REQUEST_TOPIC.cardTitle,
-      topicBullets: HELP_REQUEST_TOPIC.bullets,
-      prepSeconds: 30,
-      answerSeconds: 90,
-    };
-  }
-
-  return {
+  const base = {
     questionId: raw.id,
     moduleId,
-    type: 'speaking',
+    type: 'speaking' as const,
     order,
     situation: '',
-    instruction: raw.prompt,
-    imageUrl: toImageUrl(raw.imageUrl),
-    prepSeconds: 30,
-    answerSeconds: 90,
+    instruction: raw.instruction ?? '',
+    guideTexts: raw.guideTexts,
+    prepSeconds: raw.preparationSeconds,
+    answerSeconds: raw.responseSeconds,
   };
+
+  // 읽고 설명하기 — 안전수칙 카드
+  if (raw.part === 'READ_AND_EXPLAIN') {
+    return {
+      ...base,
+      topicTitle: raw.safetyRulesTitle,
+      topicBullets: raw.safetyRules,
+    };
+  }
+
+  // 상황 묘사하기 — 그림 제시
+  if (raw.part === 'SITUATION_DESCRIPTION') {
+    return { ...base, imageUrl: toImageUrl(raw.imageUrl) };
+  }
+
+  // 질문에 대답하기 — 오디오 듣고 답하기
+  if (raw.part === 'ANSWER_QUESTION') {
+    return { ...base, audioUrl: raw.audioUrl };
+  }
+
+  return base;
 }
 
 export default function TestingQuestionPage({
@@ -93,6 +72,7 @@ export default function TestingQuestionPage({
 }) {
   const { id: sessionId, moduleId, questionId } = use(params);
   const router = useRouter();
+  useExamSessionGuard(sessionId);
 
   const { data: rawQuestions } = useQuery({
     queryKey: ['session-questions', sessionId],
@@ -106,8 +86,6 @@ export default function TestingQuestionPage({
   const rawQuestion = currentIndex >= 0 ? sectionQuestions[currentIndex] : null;
   const nextRawQuestion =
     currentIndex >= 0 ? sectionQuestions[currentIndex + 1] : undefined;
-
-  const [nextReady, setNextReady] = useState(false);
 
   if (!rawQuestion) {
     return (
@@ -135,21 +113,19 @@ export default function TestingQuestionPage({
 
   return (
     <div className="flex min-h-screen flex-col h-full justify-between">
+      {/* 시험 페이지 헤더 - 타이머 + 웹캠 */}
       <ExamSessionHeader />
 
-      <QuestionRenderer
+      {/* 문항 섹션 */}
+      <SpeakingQuestion
         key={question.questionId}
         sessionId={sessionId}
         question={question}
-        onReadyChange={setNextReady}
         onSubmitted={handleNext}
       />
 
-      <NextStepButton
-        onClick={handleNext}
-        disabled={GATED_TYPES.includes(question.type) && !nextReady}
-        label={GATED_TYPES.includes(question.type) ? '건너뛰기' : '다음'}
-      />
+      {/* 건너뛰기는 항상 활성 — 녹음 완료 시엔 onSubmitted가 자동으로 넘긴다. */}
+      <NextStepButton onClick={handleNext} label="건너뛰기" />
     </div>
   );
 }

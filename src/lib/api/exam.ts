@@ -2,6 +2,7 @@ import type {
   AnswerResponse,
   ApplyExamResponse,
   ExamListItem,
+  ExamSessionStatusResponse,
   MyExamItem,
   SaveAnswerRequest,
   SessionQuestionResponse,
@@ -28,16 +29,15 @@ export const startExamSession = (examId: string) =>
     .post<StartExamSessionResponse>(`/exams/${examId}/sessions`)
     .then((res) => res.data);
 
+// 세션 상태 조회 — 진입 시 INPROGRESS가 아니면(종료/차단) 진행 불가.
+export const getExamSession = (examSessionId: string) =>
+  apiClient
+    .get<ExamSessionStatusResponse>(`/exam-sessions/${examSessionId}`)
+    .then((res) => res.data);
+
 export const getSessionQuestions = (examSessionId: string) =>
   apiClient
     .get<SessionQuestionResponse[]>(`/exam-sessions/${examSessionId}/questions`)
-    .then((res) => res.data);
-
-export const getSessionQuestion = (examSessionId: string, questionId: string) =>
-  apiClient
-    .get<SessionQuestionResponse>(
-      `/exam-sessions/${examSessionId}/questions/${questionId}`,
-    )
     .then((res) => res.data);
 
 export const getAnswerUploadUrl = (

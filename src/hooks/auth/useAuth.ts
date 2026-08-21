@@ -1,13 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 
 import {
-  adminSignIn,
   checkEmail,
   sendEmailCode,
   signIn,
   signUp,
   verifyEmailCode,
-  type AdminSignInRequest,
   type AuthResponse,
   type SendEmailCodeRequest,
   type SignInRequest,
@@ -31,13 +29,6 @@ export function signOut() {
 export function useSignIn() {
   return useMutation({
     mutationFn: (payload: SignInRequest) => signIn(payload),
-    onSuccess: persistAuth,
-  });
-}
-
-export function useAdminSignIn() {
-  return useMutation({
-    mutationFn: (payload: AdminSignInRequest) => adminSignIn(payload),
     onSuccess: persistAuth,
   });
 }
