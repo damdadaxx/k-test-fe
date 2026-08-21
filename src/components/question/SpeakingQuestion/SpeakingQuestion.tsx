@@ -10,6 +10,7 @@ import IcMicrophone from '@/app/assets/icons/icon_microphone.svg';
 import type { SpeakingQuestionData } from '@/types/exam';
 
 import { getErrorMessage } from '@/lib/api/client';
+import { cn } from '@/lib/utils/cn';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -238,8 +239,13 @@ export function SpeakingQuestion({
     phase === 'prep' && (!isListening || listenCount >= 1);
 
   return (
-    <section className="flex h-full flex-1 flex-col items-center justify-between px-[26px] py-[51px] text-center">
-      <div className="flex flex-col items-center gap-[8.75vw]">
+    <section
+      className={cn(
+        'flex h-full flex-1 flex-col items-center justify-between px-[26px] mt-[51px] mb-[33px] text-center',
+        isRecording ? 'h-[calc(100vh-208px-35px)]' : 'h-[calc(100vh-208px)]',
+      )}
+    >
+      <div className="flex flex-col items-center">
         <div className="flex flex-col items-center gap-3">
           <h1 className="text-title-lg tracking-[-0.64px] text-icon-90">
             {headingText}
@@ -252,7 +258,7 @@ export function SpeakingQuestion({
         {isListening ? (
           <SoundPlayer
             playing={playing}
-            disabled={playing || listenCount >= MAX_LISTENS}
+            disabled={playing || isRecording || listenCount >= MAX_LISTENS}
             onPlay={playAudio}
           />
         ) : question.topicTitle ? (
@@ -265,7 +271,7 @@ export function SpeakingQuestion({
         )}
       </div>
 
-      <div className="flex flex-col items-center gap-5">
+      <div className="flex flex-col items-center">
         {isRecording && <RecordingWaveform />}
 
         {phase === 'prep' ? (
