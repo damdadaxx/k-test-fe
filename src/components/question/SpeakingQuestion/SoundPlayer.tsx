@@ -45,7 +45,7 @@ export function SoundPlayer({
   onPlay: () => void;
 }) {
   return (
-    <div className="flex w-[566px] items-center gap-5 rounded-xl bg-white p-4">
+    <div className="flex w-[566px] items-center gap-5 rounded-xl bg-white p-4 mt-[10.5556vw]">
       <button
         type="button"
         onClick={onPlay}

@@ -7,7 +7,7 @@ export function TopicPrompt({
   bullets: string[];
 }) {
   return (
-    <div className="flex w-[500px] flex-col gap-4 rounded-xl bg-white px-8 py-7 text-left">
+    <div className="flex w-[500px] flex-col gap-4 rounded-xl bg-white px-8 py-7 text-left mt-[8.75vw]">
       <p className="text-title-sm text-icon-90">{title}</p>
       {bullets.length > 0 && (
         <ul className="flex flex-col gap-2">

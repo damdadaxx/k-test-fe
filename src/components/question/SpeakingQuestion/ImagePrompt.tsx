@@ -5,7 +5,7 @@ export function ImagePrompt({ imageUrl }: { imageUrl: string }) {
   if (!imageUrl) return null;
 
   return (
-    <div className="relative w-[328px] h-[328px] overflow-hidden rounded-[16px]">
+    <div className="relative w-[328px] h-[328px] overflow-hidden rounded-[16px] mt-[36px]">
       <Image
         src={imageUrl}
         alt="문항 이미지"
