@@ -1,3 +1,4 @@
+/** Section2 - 읽고 설명하기 문제 섹션 */
 export function TopicPrompt({
   title,
   bullets,
@@ -6,7 +7,7 @@ export function TopicPrompt({
   bullets: string[];
 }) {
   return (
-    <div className="flex w-[500px] flex-col gap-4 rounded-xl border border-neutral-30 bg-white p-8 text-left">
+    <div className="flex w-[500px] flex-col gap-4 rounded-xl bg-white px-8 py-7 text-left">
       <p className="text-title-sm text-icon-90">{title}</p>
       {bullets.length > 0 && (
         <ul className="flex flex-col gap-2">

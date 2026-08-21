@@ -25,9 +25,10 @@ export function CountdownTimer() {
   // remainingSeconds를 의존성에 넣으면 틱마다 setInterval이 재생성돼서 낭비였음.
   useEffect(() => {
     const timer = setInterval(() => {
-      const current = useExamStore.getState().remainingSeconds;
-      if (current <= 0) return;
-      useExamStore.getState().setRemainingSeconds(current - 1);
+      const { remainingSeconds, paused } = useExamStore.getState();
+      // 오디오 재생 중 등 일시정지 상태면 감소하지 않는다.
+      if (paused || remainingSeconds <= 0) return;
+      useExamStore.getState().setRemainingSeconds(remainingSeconds - 1);
     }, 1000);
     return () => clearInterval(timer);
   }, []);

@@ -70,7 +70,10 @@ function getButtonState(
 
 export default function ExamsPage() {
   const router = useRouter();
+  // 회차 목록 조회 로딩 상태.
   const { data: exams, isLoading } = useExams();
+  // 내 신청/세션 현황 조회 로딩 상태. 버튼 라벨(응시완료/이어서 풀기 등) 판정에 필요해서
+  // 이 조회가 끝나기 전엔 목록을 그리지 않는다(라벨이 잘못 떴다 바뀌는 깜빡임 방지).
   const { data: myExams, isLoading: isMyLoading } = useMyExams();
   const applyExam = useApplyExam();
   // isPending은 mutate() 이후 리렌더가 돌아야 반영되므로, 그 사이 짧은 틈의 연속
@@ -108,6 +111,8 @@ export default function ExamsPage() {
     });
   };
 
+  // 신청(apply) 실패 메시지. "이미 신청함"은 정상 진행(위 onError에서 본인인증으로 보냄)이라
+  // 사용자에게 에러로 안 보여주고, 정원 초과/기간 아님 등 진짜 실패만 백엔드 message로 노출.
   const applyErrorMessage =
     applyExam.isError && !getErrorMessage(applyExam.error).includes('이미')
       ? getErrorMessage(applyExam.error) || '신청에 실패했습니다.'
@@ -115,6 +120,7 @@ export default function ExamsPage() {
 
   return (
     <main>
+      {/* 공통 헤더 */}
       <Header />
 
       <section className="mx-auto max-w-2xl px-6 py-16">
@@ -124,19 +130,22 @@ export default function ExamsPage() {
         </p>
 
         <div className="mt-8 flex flex-col gap-3">
+          {/* 로딩: 두 조회(회차 목록 + 내 현황) 중 하나라도 로딩이면 스켈레톤 노출 */}
           {(isLoading || isMyLoading) &&
             Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-20 w-full rounded-lg" />
             ))}
 
+          {/* 빈 상태: 로딩 끝났는데 OPEN 회차가 없을 때 */}
           {!isLoading && !isMyLoading && availableExams.length === 0 && (
             <p className="text-body-sm text-icon-50">
               오늘 응시 가능한 시험이 없습니다.
             </p>
           )}
 
+          {/* 에러: 신청 실패 메시지(있을 때만) */}
           {applyErrorMessage && (
-            <p className="text-body-sm text-red-500">{applyErrorMessage}</p>
+            <p className="text-body-sm text-error">{applyErrorMessage}</p>
           )}
 
           {!isLoading &&
@@ -153,6 +162,7 @@ export default function ExamsPage() {
                   className="flex items-center justify-between rounded-lg border border-neutral-30 bg-white px-5 py-4"
                 >
                   <div>
+                    <div>{exam.id}</div>
                     <p className="text-body-md font-semibold text-primary">
                       {exam.roundName}
                     </p>

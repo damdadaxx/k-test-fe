@@ -1,14 +1,16 @@
-import type { SessionQuestionResponse } from '@/types/exam';
+import type { QuestionPart, SessionQuestionResponse } from '@/types/exam';
 
-// ponytail: 백엔드에 섹션(모듈) 개념이 아직 없어서, 세션 문항 목록을 앞에서부터
-// questionCount만큼 순서대로 잘라 섹션으로 취급한다. 실제 섹션 API가 생기면
-// 이 고정 배열 대신 그 응답으로 교체할 것.
-export const SECTIONS = [
-  { moduleId: '1', title: '상황 말하기', questionCount: 1 },
-  { moduleId: '2', title: '읽고 설명하기', questionCount: 1 },
-] as const;
-
-export const ANSWER_SECONDS_PER_QUESTION = 90;
+// 섹션 = 문항 part. moduleId(라우트 세그먼트)는 프론트 표시용 순번이고, 실제 문항은
+// 각 문항의 part로 섹션에 묶인다. 문항 수/시간은 백엔드 문항 응답에서 읽는다.
+export const SECTIONS: readonly {
+  moduleId: string;
+  part: QuestionPart;
+  title: string;
+}[] = [
+  { moduleId: '1', part: 'SITUATION_DESCRIPTION', title: '상황 묘사하기' },
+  { moduleId: '2', part: 'READ_AND_EXPLAIN', title: '읽고 설명하기' },
+  { moduleId: '3', part: 'ANSWER_QUESTION', title: '질문에 대답하기' },
+];
 
 export function getSection(moduleId: string) {
   return SECTIONS.find((section) => section.moduleId === moduleId);
@@ -24,18 +26,28 @@ export function getNextSection(moduleId: string) {
   return SECTIONS[index + 1];
 }
 
-// 세션 전체 문항 목록에서 해당 섹션(moduleId)에 속하는 구간만 잘라 반환.
+// 세션 전체 문항에서 해당 섹션(moduleId)의 part에 속하는 문항만, 원래 순서대로 반환.
 export function getSectionQuestions(
   allQuestions: SessionQuestionResponse[],
   moduleId: string,
 ): SessionQuestionResponse[] {
-  const index = getSectionIndex(moduleId);
-  if (index < 0) return [];
+  const section = getSection(moduleId);
+  if (!section) return [];
+  return allQuestions.filter((q) => q.part === section.part);
+}
 
-  const start = SECTIONS.slice(0, index).reduce(
-    (sum, section) => sum + section.questionCount,
-    0,
-  );
-  const count = SECTIONS[index].questionCount;
-  return allQuestions.slice(start, start + count);
+// 이 섹션이 다루는 문제 번호 범위(start~end). 앞 섹션들의 실제 문항 수를 누적해 계산.
+// 예: 각 섹션 2문항이면 section1=1~2, section2=3~4, section3=5~6.
+export function getSectionQuestionRange(
+  allQuestions: SessionQuestionResponse[],
+  moduleId: string,
+) {
+  const index = getSectionIndex(moduleId);
+  if (index < 0) return null;
+  const countIn = (part: QuestionPart) =>
+    allQuestions.filter((q) => q.part === part).length;
+  const start =
+    SECTIONS.slice(0, index).reduce((sum, s) => sum + countIn(s.part), 0) + 1;
+  const end = start + countIn(SECTIONS[index].part) - 1;
+  return { start, end };
 }
