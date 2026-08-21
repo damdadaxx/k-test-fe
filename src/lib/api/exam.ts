@@ -40,13 +40,6 @@ export const getSessionQuestions = (examSessionId: string) =>
     .get<SessionQuestionResponse[]>(`/exam-sessions/${examSessionId}/questions`)
     .then((res) => res.data);
 
-export const getSessionQuestion = (examSessionId: string, questionId: string) =>
-  apiClient
-    .get<SessionQuestionResponse>(
-      `/exam-sessions/${examSessionId}/questions/${questionId}`,
-    )
-    .then((res) => res.data);
-
 export const getAnswerUploadUrl = (
   examSessionId: string,
   questionId: string,
