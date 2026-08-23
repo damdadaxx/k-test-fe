@@ -111,18 +111,6 @@ export default function ReadyPage({
 
     let cancelled = false;
 
-    // 카메라 권한이 '차단(denied)'이면 재요청해도 프롬프트가 안 뜬다 → 설정 안내.
-    const isCameraBlocked = async () => {
-      try {
-        const status = await navigator.permissions.query({
-          name: 'camera' as PermissionName,
-        });
-        return status.state === 'denied';
-      } catch {
-        return false; // Permissions API 미지원이면 알 수 없음 → 그냥 재요청 시도.
-      }
-    };
-
     const requestCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -136,8 +124,6 @@ export default function ReadyPage({
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch {
         if (cancelled) return;
-        const blocked = await isCameraBlocked();
-        if (cancelled) return;
         // 요청은 1회만. 거부/실패 시 안내만 하고 시험은 그대로 진행(캘리브레이션은 best-effort).
         openModal(
           <ModalBase
@@ -145,9 +131,8 @@ export default function ReadyPage({
             className="flex w-90 flex-col items-center gap-6 text-center"
           >
             <p className="text-body-lg text-primary">
-              {blocked
-                ? '카메라 권한이 차단되어 있습니다. 브라우저 설정에서 카메라를 허용하면 감독 기능이 활성화됩니다.'
-                : '시험 감독을 위한 카메라 권한이 없어 감독 기능 없이 진행됩니다.'}
+              시험을 시작하기 위해 카메라와 마이크 권한이 필요합니다. 원활한
+              진행을 위해 권한을 허용해 주세요.
             </p>
             <ButtonPrimary width={140} onClick={closeModal}>
               확인
