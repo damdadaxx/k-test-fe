@@ -2,31 +2,17 @@
 
 import { useEffect, useRef } from 'react';
 
-import { useProctorStore } from '@/store/proctorStore';
+import { useCameraStream } from '@/components/proctor/CameraStreamProvider';
 
+// 헤더 실시간 셀프뷰. 카메라는 CameraStreamProvider가 취득한 공유 스트림을 사용
+// (프레임 분석 WebcamMonitor와 하나의 getUserMedia를 공유).
 export function WebcamMonitor() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const setWebcamActive = useProctorStore((state) => state.setWebcamActive);
+  const stream = useCameraStream();
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((mediaStream) => {
-        stream = mediaStream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-        setWebcamActive(true);
-      })
-      .catch(() => setWebcamActive(false));
-
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-      setWebcamActive(false);
-    };
-  }, [setWebcamActive]);
+    if (videoRef.current) videoRef.current.srcObject = stream;
+  }, [stream]);
 
   return (
     <video

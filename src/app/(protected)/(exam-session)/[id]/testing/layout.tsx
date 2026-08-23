@@ -2,6 +2,7 @@
 
 import { use } from 'react';
 
+import { CameraStreamProvider } from '@/components/proctor/CameraStreamProvider';
 import { ProctorGuard } from '@/components/proctor/ProctorGuard';
 import { WebcamMonitor } from '@/components/proctor/WebcamMonitor';
 
@@ -17,10 +18,11 @@ export default function TestingLayout({
   const { id: examSessionId } = use(params);
 
   return (
-    <>
+    // 카메라 스트림을 한 번만 취득해 셀프뷰·분석이 공유(중복 getUserMedia 제거).
+    <CameraStreamProvider>
       <WebcamMonitor examSessionId={examSessionId} />
       <ProctorGuard examSessionId={examSessionId} />
       {children}
-    </>
+    </CameraStreamProvider>
   );
 }

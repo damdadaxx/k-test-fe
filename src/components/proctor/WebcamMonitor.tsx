@@ -7,7 +7,7 @@ import { PROCTOR_DISABLED } from '@/lib/proctor/config';
 import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
-import { useProctorStore } from '@/store/proctorStore';
+import { useCameraStream } from './CameraStreamProvider';
 
 // 웹캠 프레임 주기 전송. 결정 근거·비용 레버는 docs/planning/05-proctoring-monitoring.md 참고.
 // - 기본 10s, env로 조절. severity>=LOW 응답 오면 일정시간 5s로 가속(adaptive).
@@ -35,7 +35,8 @@ export function WebcamMonitor({
   intervalMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const setWebcamActive = useProctorStore((s) => s.setWebcamActive);
+  // 카메라 스트림은 CameraStreamProvider가 한 번만 취득해 공유(중복 getUserMedia 제거).
+  const stream = useCameraStream();
 
   // 렌더 유발 없이 유지되는 루프 상태. 시작 시각은 effect에서 세팅(렌더 중 Date.now()는 impure).
   const startedAtRef = useRef(0);
@@ -45,13 +46,11 @@ export function WebcamMonitor({
   const clipBusyRef = useRef(false);
 
   useEffect(() => {
-    if (PROCTOR_DISABLED) return;
+    if (PROCTOR_DISABLED || !stream) return;
     startedAtRef.current = Date.now();
-    // 이 effect 실행에 국한된 취소 플래그/타이머 — StrictMode 이중 마운트 시
-    // 첫 실행의 async(getUserMedia)까지 확실히 격리해 루프가 겹치지 않게 한다.
+    // 이 effect 실행에 국한된 취소 플래그/타이머 — StrictMode 이중 마운트 시 루프가 겹치지 않게.
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    let stream: MediaStream | null = null;
 
     // MediaStream을 CLIP_DURATION_MS 동안 녹화해 하나의 webm Blob으로.
     const recordClip = (src: MediaStream): Promise<Blob | null> =>
@@ -158,34 +157,15 @@ export function WebcamMonitor({
       scheduleNext();
     };
 
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((mediaStream) => {
-        if (cancelled) {
-          mediaStream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        stream = mediaStream;
-
-        if (videoRef.current) videoRef.current.srcObject = mediaStream;
-
-        setWebcamActive(true);
-        scheduleNext();
-      })
-      .catch(() => {
-        // TODO: 수정된 기획 반영 예정 (시험 진입 게이트 페이지 없이 개발될 예정. 카메라, 음성 권한 한 번에 요청하고 꺼지면 요청하는 모달 오픈 하는 방향으로 할 예정.)
-        // 카메라 권한 거부/실패. ponytail: 시험 진입 게이트(Device Check)에서 이미 걸러질 예정.
-        setWebcamActive(false);
-      });
+    // 공유 스트림을 캡처용 비디오에 연결하고 루프 시작. 스트림 정지는 Provider가 담당.
+    if (videoRef.current) videoRef.current.srcObject = stream;
+    scheduleNext();
 
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
-      stream?.getTracks().forEach((t) => t.stop());
-      setWebcamActive(false);
     };
-  }, [examSessionId, intervalMs, setWebcamActive]);
+  }, [examSessionId, intervalMs, stream]);
 
   // 화면에 안 보이는 캡처 전용 비디오.
   return (
