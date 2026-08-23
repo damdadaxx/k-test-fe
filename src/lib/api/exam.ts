@@ -64,6 +64,15 @@ export const saveAnswer = (
     )
     .then((res) => res.data);
 
+// 문항 건너뛰기. 답안 대신 호출 → 채점 커버리지에 "스킵"으로 기록.
+// 마지막 문항이면 이 호출 안에서 서버가 자동 finalize(최종 제출). body 없음.
+export const skipQuestion = (examSessionId: string, questionId: string) =>
+  apiClient
+    .post<SessionQuestionResponse>(
+      `/exam-sessions/${examSessionId}/questions/${questionId}/skip`,
+    )
+    .then((res) => res.data);
+
 export const getAnswer = (examSessionId: string, questionId: string) =>
   apiClient
     .get<AnswerResponse>(

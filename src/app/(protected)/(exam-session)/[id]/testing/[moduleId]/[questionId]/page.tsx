@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 
 import type { Question, SessionQuestionResponse } from '@/types/exam';
 
-import { getSessionQuestions } from '@/lib/api/exam';
+import { getSessionQuestions, skipQuestion } from '@/lib/api/exam';
 import { getNextSection, getSectionQuestions } from '@/lib/exam/sections';
 
 import { useExamSessionGuard } from '@/hooks/exam/useExamSessionGuard';
@@ -96,9 +96,11 @@ export default function TestingQuestionPage({
   }
 
   const question = toQuestion(rawQuestion, moduleId, currentIndex + 1);
+  // 다음 문항도, 다음 섹션도 없으면 마지막 문항(section3 끝) → 버튼을 "제출"로.
+  const isLastQuestion = !nextRawQuestion && !getNextSection(moduleId);
 
-  const handleNext = () => {
-    // 뒤로가기로 이전 문항 복귀를 막기 위해 시험 내부 이동은 replace(history 미적재).
+  // 다음 문항/섹션/결과로 이동만. 뒤로가기 복귀 방지 위해 replace(history 미적재).
+  const goNext = () => {
     if (nextRawQuestion) {
       router.replace(`/${sessionId}/testing/${moduleId}/${nextRawQuestion.id}`);
       return;
@@ -112,21 +114,35 @@ export default function TestingQuestionPage({
     }
   };
 
+  // "건너뛰기/제출" 버튼: 답안 대신 skip 호출(마지막 문항이면 서버가 자동 finalize) 후 이동.
+  // 실패(이미 답안 저장 409/종료된 세션 등)해도 이동은 진행 — 다음 화면 가드가 처리.
+  const handleSkip = async () => {
+    try {
+      await skipQuestion(sessionId, questionId);
+    } catch {
+      // best-effort: 스킵 실패해도 시험 흐름은 막지 않는다.
+    }
+    goNext();
+  };
+
   return (
     <div className="flex min-h-screen flex-col h-full justify-between">
       {/* 시험 페이지 헤더 - 타이머 + 웹캠 */}
       <ExamSessionHeader />
 
-      {/* 문항 섹션 */}
+      {/* 문항 섹션 — 녹음 제출(답안 저장) 성공 시 skip 없이 바로 다음으로. */}
       <SpeakingQuestion
         key={question.questionId}
         sessionId={sessionId}
         question={question}
-        onSubmitted={handleNext}
+        onSubmitted={goNext}
       />
 
-      {/* 건너뛰기는 항상 활성 — 녹음 완료 시엔 onSubmitted가 자동으로 넘긴다. */}
-      <NextStepButton onClick={handleNext} label="건너뛰기" />
+      {/* 건너뛰기/제출 버튼: 답안 대신 skip 호출 후 이동. 마지막 문항은 "제출"로 표시. */}
+      <NextStepButton
+        onClick={() => void handleSkip()}
+        label={isLastQuestion ? '제출' : '건너뛰기'}
+      />
     </div>
   );
 }
