@@ -1,12 +1,3 @@
-export const base64ToBlob = (base64: string, mimeType = 'image/jpeg'): Blob => {
-  const byteString = atob(base64.split(',')[1] ?? base64);
-  const bytes = new Uint8Array(byteString.length);
-  for (let i = 0; i < byteString.length; i += 1) {
-    bytes[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: mimeType });
-};
-
 // 이미지가 maxBytes를 넘으면 해상도/품질을 낮춰 그 밑으로 맞춘 File을 돌려준다.
 // 이미지가 아니거나(PDF 등) 이미 작으면 원본 그대로 반환.
 // ponytail: 8회로도 못 맞추면 원본 반환 — 호출부의 크기 검증이 막는다(사실상 도달 어려움).
@@ -52,11 +43,3 @@ export const downscaleImageToLimit = async (
   bitmap.close();
   return file;
 };
-
-export const blobToBase64 = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });

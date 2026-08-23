@@ -2,6 +2,7 @@ import type {
   AnswerResponse,
   ApplyExamResponse,
   ExamListItem,
+  ExamSessionStatusResponse,
   MyExamItem,
   SaveAnswerRequest,
   SessionQuestionResponse,
@@ -28,16 +29,15 @@ export const startExamSession = (examId: string) =>
     .post<StartExamSessionResponse>(`/exams/${examId}/sessions`)
     .then((res) => res.data);
 
+// 세션 상태 조회 — 진입 시 INPROGRESS가 아니면(종료/차단) 진행 불가.
+export const getExamSession = (examSessionId: string) =>
+  apiClient
+    .get<ExamSessionStatusResponse>(`/exam-sessions/${examSessionId}`)
+    .then((res) => res.data);
+
 export const getSessionQuestions = (examSessionId: string) =>
   apiClient
     .get<SessionQuestionResponse[]>(`/exam-sessions/${examSessionId}/questions`)
-    .then((res) => res.data);
-
-export const getSessionQuestion = (examSessionId: string, questionId: string) =>
-  apiClient
-    .get<SessionQuestionResponse>(
-      `/exam-sessions/${examSessionId}/questions/${questionId}`,
-    )
     .then((res) => res.data);
 
 export const getAnswerUploadUrl = (
@@ -61,6 +61,15 @@ export const saveAnswer = (
     .post<AnswerResponse>(
       `/exam-sessions/${examSessionId}/questions/${questionId}/answer`,
       payload,
+    )
+    .then((res) => res.data);
+
+// 문항 건너뛰기. 답안 대신 호출 → 채점 커버리지에 "스킵"으로 기록.
+// 마지막 문항이면 이 호출 안에서 서버가 자동 finalize(최종 제출). body 없음.
+export const skipQuestion = (examSessionId: string, questionId: string) =>
+  apiClient
+    .post<SessionQuestionResponse>(
+      `/exam-sessions/${examSessionId}/questions/${questionId}/skip`,
     )
     .then((res) => res.data);
 

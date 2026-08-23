@@ -11,7 +11,6 @@ interface SessionState {
   setIdCardPath: (path: string | null) => void;
   setIdentityVerified: (verified: boolean) => void;
   setEarCheckVerified: (verified: boolean) => void;
-  reset: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -23,11 +22,4 @@ export const useSessionStore = create<SessionState>((set) => ({
   setIdCardPath: (idCardPath) => set({ idCardPath }),
   setIdentityVerified: (identityVerified) => set({ identityVerified }),
   setEarCheckVerified: (earCheckVerified) => set({ earCheckVerified }),
-  reset: () =>
-    set({
-      sessionId: null,
-      idCardPath: null,
-      identityVerified: false,
-      earCheckVerified: false,
-    }),
 }));

@@ -47,11 +47,6 @@ export interface SignUpRequest {
   agreedToVoiceDataAiTraining?: boolean;
 }
 
-export interface AdminSignInRequest {
-  email: string;
-  password: string;
-}
-
 export interface MeResponse {
   id: string;
   email: string;
@@ -81,11 +76,6 @@ export const signIn = (payload: SignInRequest) =>
 export const signUp = (payload: SignUpRequest) =>
   apiClient
     .post<AuthResponse>('/auth/sign-up', payload)
-    .then((res) => res.data);
-
-export const adminSignIn = (payload: AdminSignInRequest) =>
-  apiClient
-    .post<AuthResponse>('/auth/admin/sign-in', payload)
     .then((res) => res.data);
 
 export const getMe = () =>

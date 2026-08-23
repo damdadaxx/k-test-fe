@@ -1,6 +1,7 @@
 import type {
   DetectEarphoneRequest,
   EarphoneDetectResponse,
+  GazeCalibrationResponse,
   IdCardFileType,
   UploadUrlResponse,
   VerifyIdCardRequest,
@@ -8,6 +9,23 @@ import type {
 } from '@/types/identity';
 
 import { apiClient } from './client';
+
+// 시선 캘리브레이션: 화면 중앙 응시 이미지 여러 장(최대 10)으로 개인 기준값 산출.
+// signed URL 없이 바로 multipart 업로드(id-card/earphone과 동일 방식).
+export const calibrateGaze = (examId: string, images: Blob[]) => {
+  const formData = new FormData();
+  formData.append('examId', examId);
+  images.forEach((img) =>
+    formData.append('calibration_images', img, 'gaze.jpg'),
+  );
+
+  return apiClient
+    .post<GazeCalibrationResponse>(
+      '/verifications/gaze-calibration/calibrate',
+      formData,
+    )
+    .then((res) => res.data);
+};
 
 export const getIdCardUploadUrl = (
   examId: string,

@@ -4,18 +4,11 @@ import { use } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { getErrorMessage } from '@/lib/api/client';
-
-import { useModal } from '@/providers/ModalProvider';
-
-import { useStartExamSession } from '@/hooks/exam/useExams';
 import { useEarDetection } from '@/hooks/identity/useEarDetection';
 
 import { useSessionStore } from '@/store/sessionStore';
 
-import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import { NextStepButton } from '@/components/common/Footer/NextStepButton';
-import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { EarCapture } from '@/components/identity/EarCapture';
 import StepHeader from '@/components/identity/StepHeader';
 
@@ -30,9 +23,7 @@ export default function EarCheckPage({
 }) {
   const { id: examId } = use(params);
   const router = useRouter();
-  const { openModal, closeModal } = useModal();
   const earDetection = useEarDetection(examId);
-  const startSession = useStartExamSession();
   const earCheckVerified = useSessionStore((state) => state.earCheckVerified);
   const setEarCheckVerified = useSessionStore(
     (state) => state.setEarCheckVerified,
@@ -52,30 +43,10 @@ export default function EarCheckPage({
     return result.earphoneDetected;
   };
 
-  // [시험 시작] — POST /exams/:id/sessions. 응답 examSessionId로 세션 라우트 진입.
-  // 재접속 차단(403)·종료된 시험(409) 등으로 실패하면 안내 모달 후 회차 목록으로 돌려보낸다.
-  const handleNext = async () => {
-    try {
-      const session = await startSession.mutateAsync(examId);
-      router.push(`/${session.id}/ready`);
-    } catch (error) {
-      const message = getErrorMessage(error, '시험을 시작할 수 없습니다.');
-      const backToExams = () => {
-        closeModal();
-        router.replace('/exams');
-      };
-      openModal(
-        <ModalBase
-          onClose={backToExams}
-          className="flex w-90 flex-col items-center gap-6 text-center"
-        >
-          <p className="text-body-lg text-primary">{message}</p>
-          <ButtonPrimary width={140} onClick={backToExams}>
-            확인
-          </ButtonPrimary>
-        </ModalBase>,
-      );
-    }
+  // 본인인증 완료 → 준비 화면으로. 세션 시작(POST /exams/:id/sessions)은 /ready에서
+  // 단 한 번만 호출해 재개 남용 카운트가 여기서 소모되지 않게 한다. examId를 그대로 넘긴다.
+  const handleNext = () => {
+    router.push(`/${examId}/ready`);
   };
 
   return (
@@ -88,7 +59,7 @@ export default function EarCheckPage({
 
       <NextStepButton
         onClick={handleNext}
-        disabled={!earCheckVerified || startSession.isPending}
+        disabled={!earCheckVerified}
         label="Next"
       />
     </div>
