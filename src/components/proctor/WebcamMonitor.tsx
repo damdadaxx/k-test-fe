@@ -1,0 +1,222 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+
+import { analyzeFrame, getClipUploadUrl, linkClip } from '@/lib/api/monitoring';
+import { PROCTOR_DISABLED } from '@/lib/proctor/config';
+import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
+
+import { useProctorStore } from '@/store/proctorStore';
+
+// 웹캠 프레임 주기 전송. 결정 근거·비용 레버는 docs/planning/05-proctoring-monitoring.md 참고.
+// - 기본 10s, env로 조절. severity>=LOW 응답 오면 일정시간 5s로 가속(adaptive).
+// - 프레임은 640px/jpeg 0.7로 축소해 업로드/Storage 비용 절감.
+// - 탭 숨김(document.hidden)이면 스킵. 동일인 검사(runIdentityCheck)는 희소 호출.
+const BASE_INTERVAL_MS = Number(
+  process.env.NEXT_PUBLIC_PROCTOR_INTERVAL_MS ?? 10000,
+);
+const FAST_INTERVAL_MS = 5000;
+// 가속 유지 시간: 마지막 위반 감지 후 이 시간 동안 FAST로.
+const FAST_WINDOW_MS = 30000;
+// 동일인 검사 주기(프레임 순번 기준). 예: 6프레임마다 1회(기본 10s면 ~1분).
+const IDENTITY_CHECK_EVERY = 6;
+const MAX_DIMENSION = 640;
+const JPEG_QUALITY = 0.7;
+// createClip 이벤트 시 녹화할 클립 길이.
+// ponytail: pre-roll 버퍼 없이 감지 "이후"만 녹화(전후 중 후만). before 컨텍스트가 필요해지면
+// 링 버퍼(webm 헤더 청크 유지)로 업그레이드.
+const CLIP_DURATION_MS = 6000;
+
+/** 시험 세션 레이아웃에 전역 마운트. 시작 시 웹캠 스트림 확보 + 프레임 전송 루프 시작. */
+export function WebcamMonitor({
+  examSessionId,
+  intervalMs = BASE_INTERVAL_MS,
+}: {
+  examSessionId: string;
+  intervalMs?: number;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const setWebcamActive = useProctorStore((s) => s.setWebcamActive);
+
+  // 렌더 유발 없이 유지되는 루프 상태. 시작 시각은 effect에서 세팅(렌더 중 Date.now()는 impure).
+  const startedAtRef = useRef(0);
+  const sequenceRef = useRef(0);
+  const fastUntilRef = useRef(0);
+  // 클립은 한 번에 하나만 녹화(중복 createClip 시 새 이벤트는 건너뜀).
+  const clipBusyRef = useRef(false);
+
+  useEffect(() => {
+    if (PROCTOR_DISABLED) return;
+    startedAtRef.current = Date.now();
+    // 이 effect 실행에 국한된 취소 플래그/타이머 — StrictMode 이중 마운트 시
+    // 첫 실행의 async(getUserMedia)까지 확실히 격리해 루프가 겹치지 않게 한다.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let stream: MediaStream | null = null;
+
+    // 비디오 프레임을 640px/jpeg로 축소해 Blob으로.
+    const captureFrame = async (): Promise<Blob | null> => {
+      const video = videoRef.current;
+      if (!video || !video.videoWidth) return null;
+
+      const scale = Math.min(
+        1,
+        MAX_DIMENSION / Math.max(video.videoWidth, video.videoHeight),
+      );
+      const w = Math.round(video.videoWidth * scale);
+      const h = Math.round(video.videoHeight * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')?.drawImage(video, 0, 0, w, h);
+
+      return new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
+      );
+    };
+
+    // MediaStream을 CLIP_DURATION_MS 동안 녹화해 하나의 webm Blob으로.
+    const recordClip = (src: MediaStream): Promise<Blob | null> =>
+      new Promise((resolve) => {
+        let recorder: MediaRecorder;
+
+        try {
+          recorder = new MediaRecorder(src, { mimeType: 'video/webm' });
+        } catch {
+          resolve(null);
+          return;
+        }
+
+        const chunks: Blob[] = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () =>
+          resolve(
+            chunks.length
+              ? new Blob(chunks, { type: recorder.mimeType })
+              : null,
+          );
+
+        recorder.start();
+        setTimeout(
+          () => recorder.state !== 'inactive' && recorder.stop(),
+          CLIP_DURATION_MS,
+        );
+      });
+
+    // createClip 이벤트: 클립 녹화 → 업로드 URL 발급 → signedUrl 업로드 → 이벤트 연결 (05 C흐름).
+    // 루프를 막지 않도록 tick에서 await하지 않고 분리 실행. 실패해도 시험 진행 방해 안 함.
+    const handleClip = async (eventId: string) => {
+      if (clipBusyRef.current || !stream) return;
+      clipBusyRef.current = true;
+
+      try {
+        const clip = await recordClip(stream);
+        if (!clip || cancelled) return;
+
+        const contentType = (clip.type || 'video/webm').split(';')[0];
+        const { path, signedUrl } = await getClipUploadUrl(
+          examSessionId,
+          eventId,
+          contentType,
+        );
+        await uploadToSignedUrl(signedUrl, clip);
+
+        if (cancelled) return;
+
+        await linkClip(examSessionId, eventId, path);
+      } catch (err) {
+        console.warn('[WebcamMonitor] clip 업로드 실패:', err);
+      } finally {
+        clipBusyRef.current = false;
+      }
+    };
+
+    const scheduleNext = () => {
+      if (cancelled) return;
+      const fast = Date.now() < fastUntilRef.current;
+      timer = setTimeout(tick, fast ? FAST_INTERVAL_MS : intervalMs);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      // 탭 숨김이면 분석 스킵(검은 프레임 무의미, 탭 이탈은 violations로 별도 신고).
+      if (document.hidden) {
+        scheduleNext();
+        return;
+      }
+
+      try {
+        const frame = await captureFrame();
+
+        if (frame) {
+          sequenceRef.current += 1;
+          const seq = sequenceRef.current;
+          const res = await analyzeFrame(examSessionId, frame, {
+            capturedAt: new Date().toISOString(),
+            elapsedMs: Date.now() - startedAtRef.current,
+            captureSequence: seq,
+            runIdentityCheck: seq % IDENTITY_CHECK_EVERY === 1,
+          });
+
+          // 위반 감지되면 잠시 가속.
+          if (res.severity !== 'NORMAL') {
+            fastUntilRef.current = Date.now() + FAST_WINDOW_MS;
+          }
+          // createClip 신호면 해당 이벤트의 영상 클립을 녹화·업로드(루프와 분리 실행).
+          const clipEventId = res.createClip
+            ? res.recordedEvents[0]?.id
+            : undefined;
+          if (clipEventId) void handleClip(clipEventId);
+        }
+      } catch (err) {
+        // analyze는 실패해도 시험을 막지 않는 게 원칙. 로그만 남기고 다음 주기로.
+        console.warn('[WebcamMonitor] analyze 실패:', err);
+      }
+
+      scheduleNext();
+    };
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((mediaStream) => {
+        if (cancelled) {
+          mediaStream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        stream = mediaStream;
+
+        if (videoRef.current) videoRef.current.srcObject = mediaStream;
+
+        setWebcamActive(true);
+        scheduleNext();
+      })
+      .catch(() => {
+        // TODO: 수정된 기획 반영 예정 (시험 진입 게이트 페이지 없이 개발될 예정. 카메라, 음성 권한 한 번에 요청하고 꺼지면 요청하는 모달 오픈 하는 방향으로 할 예정.)
+        // 카메라 권한 거부/실패. ponytail: 시험 진입 게이트(Device Check)에서 이미 걸러질 예정.
+        setWebcamActive(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      stream?.getTracks().forEach((t) => t.stop());
+      setWebcamActive(false);
+    };
+  }, [examSessionId, intervalMs, setWebcamActive]);
+
+  // 화면에 안 보이는 캡처 전용 비디오.
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      className="pointer-events-none fixed size-px opacity-0"
+    />
+  );
+}
