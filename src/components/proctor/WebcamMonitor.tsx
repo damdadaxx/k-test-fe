@@ -7,7 +7,7 @@ import { PROCTOR_DISABLED } from '@/lib/proctor/config';
 import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
-import { useCameraStream } from './CameraStreamProvider';
+import { useCameraStream } from '@/providers/CameraStreamProvider';
 
 // 웹캠 프레임 주기 전송. 결정 근거·비용 레버는 docs/planning/05-proctoring-monitoring.md 참고.
 // - 기본 10s, env로 조절. severity>=LOW 응답 오면 일정시간 5s로 가속(adaptive).
