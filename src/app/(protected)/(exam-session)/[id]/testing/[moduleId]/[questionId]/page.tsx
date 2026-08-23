@@ -98,16 +98,17 @@ export default function TestingQuestionPage({
   const question = toQuestion(rawQuestion, moduleId, currentIndex + 1);
 
   const handleNext = () => {
+    // 뒤로가기로 이전 문항 복귀를 막기 위해 시험 내부 이동은 replace(history 미적재).
     if (nextRawQuestion) {
-      router.push(`/${sessionId}/testing/${moduleId}/${nextRawQuestion.id}`);
+      router.replace(`/${sessionId}/testing/${moduleId}/${nextRawQuestion.id}`);
       return;
     }
 
     const nextSection = getNextSection(moduleId);
     if (nextSection) {
-      router.push(`/${sessionId}/testing/${nextSection.moduleId}/intro`);
+      router.replace(`/${sessionId}/testing/${nextSection.moduleId}/intro`);
     } else {
-      router.push(`/${sessionId}/finish`);
+      router.replace(`/${sessionId}/finish`);
     }
   };
 

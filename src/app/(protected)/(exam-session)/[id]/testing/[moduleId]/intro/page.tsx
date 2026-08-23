@@ -56,7 +56,7 @@ export default function SectionIntroPage({
 
   const handleStart = () => {
     if (!firstQuestion) return;
-    router.push(`/${sessionId}/testing/${moduleId}/${firstQuestion.id}`);
+    router.replace(`/${sessionId}/testing/${moduleId}/${firstQuestion.id}`);
   };
 
   return (

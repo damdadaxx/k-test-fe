@@ -34,3 +34,12 @@ export interface EarphoneDetectResponse {
   rightEarDetected: boolean;
   message: string;
 }
+
+// POST /verifications/gaze-calibration/calibrate 응답. 로컬(REQUIRE_MONITORING_SERVICE=false)은
+// AI 통신 실패해도 calibrated:false 중립 201로 내려온다.
+export interface GazeCalibrationResponse {
+  calibrated: boolean;
+  sampleCount: number;
+  eyeYawCenter: number;
+  eyePitchCenter: number;
+}
