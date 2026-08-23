@@ -2,13 +2,13 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-import IcArrowLeft from '@/app/assets/icons/icon_arrow_left.svg';
-
 import { getErrorMessage } from '@/lib/api/client';
+import { calibrateGaze } from '@/lib/api/identity';
 import { SECTIONS } from '@/lib/exam/sections';
+import { PROCTOR_DISABLED } from '@/lib/proctor/config';
+import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -17,7 +17,6 @@ import { useStartExamSession } from '@/hooks/exam/useExams';
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import LoadingDisplay from '@/components/common/Display/LoadingDisplay';
 import { ModalBase } from '@/components/common/Modal/ModalBase';
-import ProgressBar from '@/components/common/ProgressBar/ProgressBar';
 
 // 점 응시 5초 → 5초 카운트다운(5→1) → 세션 시작 (Figma 시험 시작전 플로우).
 const DOT_SECONDS = 5;
@@ -43,10 +42,31 @@ export default function ReadyPage({
   // null = 점 응시 단계, 숫자 = 카운트다운 남은 초.
   const [count, setCount] = useState<number | null>(null);
 
-  // 카운트다운이 끝나면(0) 세션 시작 → 성공 시 intro, 실패 시 안내 모달 후 /exams.
-  const startSessionOnce = () => {
+  // 시선 캘리브레이션용: 카운트다운 동안 캡처한 중앙 응시 이미지들.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const calibrationImagesRef = useRef<Blob[]>([]);
+
+  // 중앙 응시 프레임 1장 캡처해 캘리브레이션 이미지 배열에 담는다.
+  const captureCalibrationFrame = async () => {
+    const blob = await captureVideoFrame(videoRef.current);
+    if (blob) calibrationImagesRef.current.push(blob);
+  };
+
+  // 카운트다운이 끝나면(0) 시선 캘리브레이션 → 세션 시작 → 성공 시 intro, 실패 시 안내 모달 후 /exams.
+  const startSessionOnce = async () => {
     if (startedRef.current) return;
     startedRef.current = true;
+
+    // 시선 캘리브레이션(선택 기능): 캡처한 이미지가 있으면 전송. 실패해도 시험은 진행(best-effort).
+    const images = calibrationImagesRef.current;
+    if (!PROCTOR_DISABLED && images.length > 0) {
+      try {
+        await calibrateGaze(examId, images);
+      } catch {
+        // 캘리브레이션 실패는 시선 판정 정확도만 낮출 뿐 시험 진입을 막지 않는다.
+      }
+    }
 
     // 개발 우회: 세션시작 호출 없이 고정 세션으로 바로 진입(재개 카운트 소모 안 함).
     if (DEV_SESSION_ID) {
@@ -85,6 +105,67 @@ export default function ReadyPage({
     });
   };
 
+  // 시선 캘리브레이션용 웹캠 확보(카운트다운 동안 중앙 응시 이미지 캡처). 운영에선 PROCTOR_DISABLED=false.
+  useEffect(() => {
+    if (PROCTOR_DISABLED) return;
+
+    let cancelled = false;
+
+    // 카메라 권한이 '차단(denied)'이면 재요청해도 프롬프트가 안 뜬다 → 설정 안내.
+    const isCameraBlocked = async () => {
+      try {
+        const status = await navigator.permissions.query({
+          name: 'camera' as PermissionName,
+        });
+        return status.state === 'denied';
+      } catch {
+        return false; // Permissions API 미지원이면 알 수 없음 → 그냥 재요청 시도.
+      }
+    };
+
+    const requestCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch {
+        if (cancelled) return;
+        const blocked = await isCameraBlocked();
+        if (cancelled) return;
+        // 요청은 1회만. 거부/실패 시 안내만 하고 시험은 그대로 진행(캘리브레이션은 best-effort).
+        openModal(
+          <ModalBase
+            onClose={closeModal}
+            className="flex w-90 flex-col items-center gap-6 text-center"
+          >
+            <p className="text-body-lg text-primary">
+              {blocked
+                ? '카메라 권한이 차단되어 있습니다. 브라우저 설정에서 카메라를 허용하면 감독 기능이 활성화됩니다.'
+                : '시험 감독을 위한 카메라 권한이 없어 감독 기능 없이 진행됩니다.'}
+            </p>
+            <ButtonPrimary width={140} onClick={closeModal}>
+              확인
+            </ButtonPrimary>
+          </ModalBase>,
+        );
+      }
+    };
+
+    // 카메라 요청은 1회만(재요청 없음).
+    void requestCamera();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      closeModal();
+    };
+  }, [openModal, closeModal]);
+
   // 점 응시 화면을 DOT_SECONDS 동안 보여준 뒤 카운트다운 시작.
   useEffect(() => {
     const timer = setTimeout(
@@ -94,13 +175,14 @@ export default function ReadyPage({
     return () => clearTimeout(timer);
   }, []);
 
-  // 카운트다운: 1초마다 감소, 0에 닿으면 세션 시작.
+  // 카운트다운: 1초마다 감소하며 중앙 응시 프레임 캡처, 0에 닿으면 캘리브레이션+세션 시작.
   useEffect(() => {
     if (count === null) return;
     if (count <= 0) {
-      startSessionOnce();
+      void startSessionOnce();
       return;
     }
+    void captureCalibrationFrame();
     const timer = setTimeout(() => setCount((prev) => (prev ?? 0) - 1), 1000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,6 +192,14 @@ export default function ReadyPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
+      {/* 시선 캘리브레이션 캡처용(화면엔 안 보임). */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="pointer-events-none fixed size-px opacity-0"
+      />
       <main className="relative flex flex-1 flex-col items-center">
         <p className="mt-[52px] text-title-lg tracking-[-0.64px] text-icon-90">
           {isDot

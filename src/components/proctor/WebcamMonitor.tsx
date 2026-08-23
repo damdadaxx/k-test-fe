@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { analyzeFrame, getClipUploadUrl, linkClip } from '@/lib/api/monitoring';
 import { PROCTOR_DISABLED } from '@/lib/proctor/config';
+import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
 import { useProctorStore } from '@/store/proctorStore';
@@ -20,8 +21,6 @@ const FAST_INTERVAL_MS = 5000;
 const FAST_WINDOW_MS = 30000;
 // 동일인 검사 주기(프레임 순번 기준). 예: 6프레임마다 1회(기본 10s면 ~1분).
 const IDENTITY_CHECK_EVERY = 6;
-const MAX_DIMENSION = 640;
-const JPEG_QUALITY = 0.7;
 // createClip 이벤트 시 녹화할 클립 길이.
 // ponytail: pre-roll 버퍼 없이 감지 "이후"만 녹화(전후 중 후만). before 컨텍스트가 필요해지면
 // 링 버퍼(webm 헤더 청크 유지)로 업그레이드.
@@ -53,27 +52,6 @@ export function WebcamMonitor({
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let stream: MediaStream | null = null;
-
-    // 비디오 프레임을 640px/jpeg로 축소해 Blob으로.
-    const captureFrame = async (): Promise<Blob | null> => {
-      const video = videoRef.current;
-      if (!video || !video.videoWidth) return null;
-
-      const scale = Math.min(
-        1,
-        MAX_DIMENSION / Math.max(video.videoWidth, video.videoHeight),
-      );
-      const w = Math.round(video.videoWidth * scale);
-      const h = Math.round(video.videoHeight * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d')?.drawImage(video, 0, 0, w, h);
-
-      return new Promise((resolve) =>
-        canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
-      );
-    };
 
     // MediaStream을 CLIP_DURATION_MS 동안 녹화해 하나의 webm Blob으로.
     const recordClip = (src: MediaStream): Promise<Blob | null> =>
@@ -150,7 +128,7 @@ export function WebcamMonitor({
       }
 
       try {
-        const frame = await captureFrame();
+        const frame = await captureVideoFrame(videoRef.current);
 
         if (frame) {
           sequenceRef.current += 1;
