@@ -19,6 +19,8 @@ export interface ApplyExamResponse {
 export type SessionStatus =
   'INPROGRESS' | 'SUBMITTED' | 'EXPIRED' | 'BLOCKED' | 'DISQUALIFIED';
 
+export type FinalGrade = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+
 // GET /mypage — 내가 신청한 회차 현황. appliedAt 있으면 신청함, sessionStatus로 진행 단계 구분.
 export interface MyExamItem {
   examId: string;
@@ -29,6 +31,43 @@ export interface MyExamItem {
   appliedAt: string;
   examSessionId: string | null;
   sessionStatus: SessionStatus | null;
+  // 제출 시각(제출 전 null). 최종 리포트 id(채점 전 null) — report 조회·readiness 판정에 사용. 등급 A~F.
+  submittedAt: string | null;
+  examResultId: string | null;
+  finalGrade: FinalGrade | null;
+}
+
+// GET /mypage/report/:examResultId — 최종 리포트 상세.
+export interface ReportDomainScore {
+  area: string; // content_task | language_use | delivery 등. 라벨은 프런트 매핑.
+  score: number; // 0~100
+}
+export interface ReportRequiredPoint {
+  description: string;
+  met: boolean;
+}
+export interface ReportTask {
+  questionId: string;
+  part: QuestionPart;
+  skipped: boolean; // 명시 스킵 + 방치 미착수 모두 true
+  response: string | null; // STT 전사, 스킵이면 null
+  requiredPoints: ReportRequiredPoint[] | null; // 스킵이면 null
+}
+export interface ReportViolation {
+  eventType: string; // 브라우저 + AI 감지 혼재
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  count: number;
+}
+export interface ExamReport {
+  examResultId: string;
+  examSessionId: string;
+  candidateName: string;
+  roundName: string;
+  finalGrade: FinalGrade;
+  percentile: number; // 참고용(임시 환산표)
+  domainScores: ReportDomainScore[];
+  tasks: ReportTask[];
+  violations: ReportViolation[];
 }
 
 export interface StartExamSessionResponse {

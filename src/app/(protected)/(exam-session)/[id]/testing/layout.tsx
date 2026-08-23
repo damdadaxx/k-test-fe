@@ -2,7 +2,8 @@
 
 import { use } from 'react';
 
-import { CameraStreamProvider } from '@/components/proctor/CameraStreamProvider';
+import { CameraStreamProvider } from '@/providers/CameraStreamProvider';
+
 import { ProctorGuard } from '@/components/proctor/ProctorGuard';
 import { WebcamMonitor } from '@/components/proctor/WebcamMonitor';
 
