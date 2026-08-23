@@ -42,6 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # 참고 자료 원본
+docs/*
 docs/*.hwpx
 docs/*.pdf
 docs/*.png
