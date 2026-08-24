@@ -4,9 +4,8 @@ import img_landing from '@/app/assets/images/img_landing.svg';
 
 import { cn } from '@/lib/utils/cn';
 
-import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
-
 import { CheckListItem } from './CheckListItem';
+import { TakeTestButton } from './TakeTestButton';
 
 export function HeroSection() {
   return (
@@ -51,9 +50,7 @@ export function HeroSection() {
                 Get your results within 48 hours after the test.
               </CheckListItem>
             </ul>
-            <ButtonPrimary as="link" href="/exams">
-              Take Test
-            </ButtonPrimary>
+            <TakeTestButton />
           </div>
 
           {/* Image Section */}

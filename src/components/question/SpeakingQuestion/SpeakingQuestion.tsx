@@ -137,7 +137,7 @@ export function SpeakingQuestion({
   const showSubmitError = (error: unknown) => {
     const backToExams = () => {
       closeModal();
-      router.replace('/exams');
+      router.replace('/');
     };
     openModal(
       <ModalBase

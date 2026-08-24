@@ -16,11 +16,12 @@ export function useMyExams() {
   });
 }
 
-// 진행중 세션 조회 — 홈에서 "이어서 풀기" vs "응시하기" 분기.
-export function useCurrentSession() {
+// 진행중 세션 조회 — 홈에서 "이어서 풀기" vs "응시하기" 분기. 로그인 안 했으면 호출 안 함.
+export function useCurrentSession(enabled = true) {
   return useQuery({
     queryKey: ['current-session'],
     queryFn: getCurrentSession,
+    enabled,
   });
 }
 

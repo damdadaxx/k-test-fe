@@ -48,7 +48,7 @@ export function useExamSessionGuard(sessionId: string) {
     shownRef.current = true;
     const backToExams = () => {
       closeModal();
-      router.replace('/exams');
+      router.replace('/');
     };
     openModal(
       <ModalBase

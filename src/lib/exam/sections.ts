@@ -36,6 +36,22 @@ export function getSectionQuestions(
   return allQuestions.filter((q) => q.part === section.part);
 }
 
+// 재개 진입점: 섹션 순서(SECTIONS)대로 훑어 처음 만나는 미답 문항 반환.
+// 전부 답했으면(정상 흐름에선 마지막 답변/스킵 시 자동 finalize라 드묾) 첫 문항으로 폴백.
+export function getResumeQuestion(allQuestions: SessionQuestionResponse[]) {
+  for (const section of SECTIONS) {
+    const unanswered = allQuestions.find(
+      (q) => q.part === section.part && !q.answered,
+    );
+    if (unanswered)
+      return { moduleId: section.moduleId, questionId: unanswered.id };
+  }
+  const first = allQuestions[0];
+  return first
+    ? { moduleId: SECTIONS[0].moduleId, questionId: first.id }
+    : null;
+}
+
 // 이 섹션이 다루는 문제 번호 범위(start~end). 앞 섹션들의 실제 문항 수를 누적해 계산.
 // 예: 각 섹션 2문항이면 section1=1~2, section2=3~4, section3=5~6.
 export function getSectionQuestionRange(

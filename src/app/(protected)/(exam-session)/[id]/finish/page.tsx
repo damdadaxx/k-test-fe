@@ -30,7 +30,7 @@ export default function FinishPage() {
             size="sm"
             width={140}
             as="link"
-            href="/exams"
+            href="/"
           >
             Mypage
           </ButtonPrimary>
@@ -54,7 +54,7 @@ export default function FinishPage() {
           </p>
 
           {/* TODO: 마이페이지(내 시험 현황) 라우트 생기면 교체(현재 /exams). */}
-          <ButtonPrimary width={200} as="link" href="/exams">
+          <ButtonPrimary width={200} as="link" href="/">
             마이페이지로 이동
           </ButtonPrimary>
         </div>
