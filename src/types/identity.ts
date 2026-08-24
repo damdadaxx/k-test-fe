@@ -7,7 +7,7 @@ export interface UploadUrlResponse {
 }
 
 export interface VerifyIdCardRequest {
-  examId: string;
+  examSessionId: string;
   capturedAt: string;
   idCardPath: string;
   facePath: string;
@@ -23,7 +23,7 @@ export interface VerifyIdCardResponse {
 }
 
 export interface DetectEarphoneRequest {
-  examId: string;
+  examSessionId: string;
   leftEarImage: Blob;
   rightEarImage: Blob;
 }

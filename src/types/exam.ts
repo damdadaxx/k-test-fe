@@ -1,37 +1,16 @@
-export type ExamStatus = 'SCHEDULED' | 'OPEN' | 'CLOSED';
-
-export interface ExamListItem {
-  id: string;
-  roundName: string;
-  applicationOpenAt: string;
-  applicationCloseAt: string;
-  openAt: string;
-  closeAt: string;
-  status: ExamStatus;
-}
-
-export interface ApplyExamResponse {
-  id: string;
-  examId: string;
-  appliedAt: string;
-}
+// 회차(exam) 개념 제거 — ExamStatus/ExamListItem/ApplyExamResponse 삭제(feat/exam-question-pool).
 
 export type SessionStatus =
   'INPROGRESS' | 'SUBMITTED' | 'EXPIRED' | 'BLOCKED' | 'DISQUALIFIED';
 
 export type FinalGrade = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
-// GET /mypage — 내가 신청한 회차 현황. appliedAt 있으면 신청함, sessionStatus로 진행 단계 구분.
+// GET /mypage — 내 응시 세션 현황(회차 개념 제거, 재응시 세션별로 한 줄).
+// startedAt 기준 표시. examResultId 있으면 리포트 조회 가능.
 export interface MyExamItem {
-  examId: string;
-  roundName: string;
-  openAt: string;
-  closeAt: string;
-  examStatus: ExamStatus;
-  appliedAt: string;
-  examSessionId: string | null;
+  examSessionId: string;
   sessionStatus: SessionStatus | null;
-  // 제출 시각(제출 전 null). 최종 리포트 id(채점 전 null) — report 조회·readiness 판정에 사용. 등급 A~F.
+  startedAt: string;
   submittedAt: string | null;
   examResultId: string | null;
   finalGrade: FinalGrade | null;
@@ -62,7 +41,7 @@ export interface ExamReport {
   examResultId: string;
   examSessionId: string;
   candidateName: string;
-  roundName: string;
+  startedAt: string; // 회차 개념 제거 — roundName 대신 응시 시작 시각
   finalGrade: FinalGrade;
   percentile: number; // 참고용(임시 환산표)
   domainScores: ReportDomainScore[];
@@ -70,19 +49,20 @@ export interface ExamReport {
   violations: ReportViolation[];
 }
 
+// POST /exam-sessions 응답 — 회차 id 없음. verified=false면 본인인증/이어폰부터.
 export interface StartExamSessionResponse {
   id: string;
   examSessionId: string;
-  examId: string;
   status: SessionStatus;
   startedAt: string;
+  verified: boolean;
 }
 
-// GET /exam-sessions/:id — 상태만 확인. INPROGRESS 아니면 진행 불가.
+// GET /exam-sessions/:id · GET /exam-sessions/current — 상태 + 인증 여부.
 export interface ExamSessionStatusResponse {
   id: string;
-  examId: string;
   status: SessionStatus;
+  verified: boolean;
 }
 
 // 문항 part = 섹션 종류. 그림묘사/읽고설명(안전수칙)/듣고답하기(오디오).

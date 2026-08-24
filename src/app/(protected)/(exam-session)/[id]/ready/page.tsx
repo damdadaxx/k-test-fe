@@ -76,7 +76,9 @@ export default function ReadyPage({
       return;
     }
 
-    startSession.mutate(examId, {
+    // TODO(회차 제거 플로우): 새 흐름은 세션을 홈에서 먼저 생성(POST /exam-sessions)하므로
+    // /ready에서 세션 시작 호출은 재검토 필요. 지금은 계약(무인자 POST)에만 맞춰둠.
+    startSession.mutate(undefined, {
       onSuccess: (data) => {
         router.replace(
           `/${data.examSessionId}/testing/${SECTIONS[0].moduleId}/intro`,
