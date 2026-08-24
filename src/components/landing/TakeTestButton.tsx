@@ -18,8 +18,9 @@ import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 
 // 시험 응시 시작 진입점(랜딩의 유일한 응시 버튼).
 // 미로그인이면 로그인 모달. 로그인 상태면:
-//   - 진행중(INPROGRESS) 세션이 있으면 새로 시작하지 않고 안내 모달 후 그 세션으로 복귀
-//     (백엔드가 INPROGRESS 세션 존재 시 새 세션 생성을 막음 — 3시간 지나면 스케줄러가 자동 종료).
+//   - 진행중(INPROGRESS) 세션이 있으면 확인 모달을 먼저 보여줌(POST /exam-sessions 자체는
+//     INPROGRESS여도 거부하지 않고 그 세션을 그대로 돌려주지만(재개), 반복 재접속 3회째부턴
+//     403이라 사용자 확인 없이 자동 재개하지 않음).
 //   - 그 외(세션 없음/SUBMITTED/EXPIRED/BLOCKED/DISQUALIFIED)는 항상 새 세션 생성 가능.
 export function TakeTestButton() {
   const router = useRouter();
@@ -62,20 +63,33 @@ export function TakeTestButton() {
     });
   };
 
-  // verified 안 됐으면 본인인증부터, 됐으면 마지막 미답 문항으로 바로.
-  const resumeSession = async (sessionId: string, verified: boolean) => {
+  // 재개도 POST /exam-sessions를 다시 호출한다(진행중이면 그 세션을 그대로 돌려줌) —
+  // GET current의 examSessionId를 직접 써서 이동하면 재접속 남용 방지 카운트가 안 세워진다.
+  const resumeSession = () => {
     closeModal();
-    if (!verified) {
-      router.push(`/${sessionId}/identity`);
-      return;
-    }
-    const questions = await getSessionQuestions(sessionId);
-    const target = getResumeQuestion(questions);
-    router.push(
-      target
-        ? `/${sessionId}/testing/${target.moduleId}/${target.questionId}`
-        : `/${sessionId}/testing/${SECTIONS[0].moduleId}/intro`,
-    );
+    if (startSession.isPending) return;
+
+    startSession.mutate(undefined, {
+      onSuccess: async (data) => {
+        if (!data.verified) {
+          router.push(`/${data.examSessionId}/identity`);
+          return;
+        }
+
+        const questions = await getSessionQuestions(data.examSessionId);
+        const target = getResumeQuestion(questions);
+        router.push(
+          target
+            ? `/${data.examSessionId}/testing/${target.moduleId}/${target.questionId}`
+            : `/${data.examSessionId}/testing/${SECTIONS[0].moduleId}/intro`,
+        );
+      },
+      onError: (error) => {
+        showErrorModal(
+          getErrorMessage(error, 'This test is currently unavailable.'),
+        );
+      },
+    });
   };
 
   const handleClick = () => {
@@ -83,8 +97,8 @@ export function TakeTestButton() {
       openModal(<ModalLogin onClose={closeModal} />);
       return;
     }
-    // current-session 조회 끝나기 전엔 대기 — 안 그러면 INPROGRESS 안내를 건너뛰고
-    // 바로 새 세션 생성으로 빠질 수 있다(백엔드가 그 요청을 거부해도 조용히 묻힘).
+    // current-session 조회 끝나기 전엔 대기 — 안 그러면 INPROGRESS 확인 모달을 건너뛰고
+    // 바로 startNewSession()으로 빠져 사용자 동의 없이 재접속 카운트를 소모할 수 있다.
     if (isCurrentLoading) return;
     if (current?.status === 'INPROGRESS') {
       openModal(
@@ -97,11 +111,7 @@ export function TakeTestButton() {
           </p>
           <div className="flex w-full gap-3">
             <ButtonSecondary onClick={closeModal}>Cancel</ButtonSecondary>
-            <ButtonPrimary
-              onClick={() => resumeSession(current.id, current.verified)}
-            >
-              Resume Test
-            </ButtonPrimary>
+            <ButtonPrimary onClick={resumeSession}>Resume Test</ButtonPrimary>
           </div>
         </ModalBase>,
       );

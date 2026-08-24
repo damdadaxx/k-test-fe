@@ -75,6 +75,7 @@ export interface SessionQuestionResponse {
   id: string;
   part: QuestionPart;
   answered: boolean;
+  skipped: boolean; // 건너뛴 문항(답안 없이 넘어감) — answered와 별개 필드
   preparationSeconds: number;
   responseSeconds: number;
   guideTexts: string[];

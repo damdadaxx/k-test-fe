@@ -36,16 +36,16 @@ export function getSectionQuestions(
   return allQuestions.filter((q) => q.part === section.part);
 }
 
-// 재개 진입점: 섹션 순서(SECTIONS)대로 훑어 처음 만나는 미답 문항 반환.
-// 전부 답했으면(정상 흐름에선 마지막 답변/스킵 시 자동 finalize라 드묾) 첫 문항으로 폴백.
+// 재개 진입점: 섹션 순서(SECTIONS)대로 훑어 처음 만나는 미완료(답변도 스킵도 안 함) 문항 반환.
+// 전부 완료했으면(정상 흐름에선 마지막 답변/스킵 시 자동 finalize라 드묾) 첫 문항으로 폴백.
 export function getResumeQuestion(allQuestions: SessionQuestionResponse[]) {
   for (const section of SECTIONS) {
-    const unanswered = allQuestions.find(
-      (q) => q.part === section.part && !q.answered,
+    const pending = allQuestions.find(
+      (q) => q.part === section.part && !q.answered && !q.skipped,
     );
-    if (unanswered)
-      return { moduleId: section.moduleId, questionId: unanswered.id };
+    if (pending) return { moduleId: section.moduleId, questionId: pending.id };
   }
+
   const first = allQuestions[0];
   return first
     ? { moduleId: SECTIONS[0].moduleId, questionId: first.id }
