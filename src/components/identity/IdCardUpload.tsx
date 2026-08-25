@@ -12,7 +12,12 @@ import { downscaleImageToLimit } from '@/lib/utils/image';
 // ID_CARD 업로드 허용 스펙 (PDF 기획). FACE(웹캠)는 항상 jpeg라 여기 무관.
 const ACCEPT = 'image/jpeg,image/png,application/pdf';
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB (5242880 bytes)
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB (5242880 bytes) — 업로드 자체 허용 상한(UI 안내용).
+// 본인인증 AI 벤더(Azure Document Intelligence)가 실제로 안정적으로 처리하는 크기.
+// 백엔드 확인: 1MB는 통과, 2.3MB부터 실패(공식 스펙상 4MB까지 되지만 실제로는 더 낮음) —
+// 2026-08-25 실서버 테스트에서 4.5MB 여권 사진이 "본인인증 서비스와 통신에 실패했습니다"로
+// 막힌 걸 이걸로 확인함. PDF는 축소 못 하니 그대로 둠(대상은 이미지 파일만).
+const AI_UPLOAD_LIMIT = 1 * 1024 * 1024; // 1MB
 
 export function IdCardUpload({ onUpload }: { onUpload: (file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,10 +34,13 @@ export function IdCardUpload({ onUpload }: { onUpload: (file: File) => void }) {
       return;
     }
 
-    // 폰 원본처럼 5MB 넘는 이미지는 업로드 전 축소. PDF는 축소 불가라 그대로 검증.
+    // 폰 원본처럼 큰 이미지는 AI 벤더가 처리 가능한 크기(1MB)로 축소. PDF는 축소 불가라 그대로 검증.
     let file = selected;
-    if (selected.type !== 'application/pdf' && selected.size > MAX_SIZE) {
-      file = await downscaleImageToLimit(selected, MAX_SIZE);
+    if (
+      selected.type !== 'application/pdf' &&
+      selected.size > AI_UPLOAD_LIMIT
+    ) {
+      file = await downscaleImageToLimit(selected, AI_UPLOAD_LIMIT);
     }
     if (file.size > MAX_SIZE) {
       setError('파일 크기는 5MB 이하만 업로드할 수 있습니다.');
