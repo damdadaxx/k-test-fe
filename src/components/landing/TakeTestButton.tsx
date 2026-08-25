@@ -21,6 +21,9 @@ import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 //   - 진행중(INPROGRESS) 세션이 있으면 확인 모달을 먼저 보여줌(POST /exam-sessions 자체는
 //     INPROGRESS여도 거부하지 않고 그 세션을 그대로 돌려주지만(재개), 반복 재접속 3회째부턴
 //     403이라 사용자 확인 없이 자동 재개하지 않음).
+//     단, verified:false(본인인증 전, 즉 진행률 0 확정)면 모달 없이 바로 본인인증으로 보낸다
+//     (백엔드 확인: 재진행 여부 구분은 verified로 충분 — 본인인증만 하고 나간 경우까지는
+//     "진행 중인 시험 있음" 모달을 보여줘도 무방하다는 결론).
 //   - 그 외(세션 없음/SUBMITTED/EXPIRED/BLOCKED/DISQUALIFIED)는 항상 새 세션 생성 가능.
 export function TakeTestButton() {
   const router = useRouter();
@@ -108,6 +111,10 @@ export function TakeTestButton() {
     // 바로 startNewSession()으로 빠져 사용자 동의 없이 재접속 카운트를 소모할 수 있다.
     if (isCurrentLoading) return;
     if (current?.status === 'INPROGRESS') {
+      if (!current.verified) {
+        resumeSession();
+        return;
+      }
       openModal(
         <ModalBase
           onClose={closeModal}
