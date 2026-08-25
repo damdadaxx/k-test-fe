@@ -60,7 +60,9 @@ export default function FinishPage({
           </p>
 
           <p className="max-w-115 pb-8 text-center text-body-md tracking-[-0.16px] text-icon-70">
-            Your report is ready. Take a look below.
+            Once the report is generated, we will send an announcement and link
+            to your registered email. <br />
+            You can also check the results in My Reports.
           </p>
 
           {examResultId ? (
