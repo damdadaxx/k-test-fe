@@ -3,17 +3,71 @@
 import { use } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
+import Link from 'next/link';
+
+import ImgLogo from '@/app/assets/images/img_logo.svg';
+
+import type { QuestionPart, ReportDomainScore, ReportTask } from '@/types/exam';
 
 import { getReport } from '@/lib/api/result';
+import { SECTIONS } from '@/lib/exam/sections';
 
+import { MypageMenuButton } from '@/components/common/MypageMenuButton';
+import { GradeBadge } from '@/components/result/GradeBadge';
+import { ScoreBar } from '@/components/result/ScoreBar';
+import { TaskFeedbackCard } from '@/components/result/TaskFeedbackCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 
-// 영역 키 → 표시 라벨.
+// 영역 키 → 표시 라벨(리포트는 영문).
 const AREA_LABEL: Record<string, string> = {
-  content_task: '내용 및 과제 수행',
-  language_use: '언어 사용',
-  delivery: '전달력',
+  content_task: 'Task Completion',
+  language_use: 'Language Use',
+  delivery: 'Delivery & Pronunciation',
 };
+
+// part → 섹션 카드 제목. SECTIONS(lib/exam/sections)와 같은 순서로 그룹핑해 번호를 매긴다.
+const PART_LABEL: Record<QuestionPart, string> = {
+  SITUATION_DESCRIPTION: 'Speak About the Photo',
+  READ_AND_EXPLAIN: 'Read and Explain',
+  ANSWER_QUESTION: 'Answer the Question',
+};
+
+// tasks를 SECTIONS 순서(상황묘사→읽고설명→질문답변)로 그룹핑해 "SECTION n-m" 라벨을 붙인다.
+function withSectionLabels(tasks: ReportTask[]) {
+  const counters: Partial<Record<QuestionPart, number>> = {};
+  return [...tasks]
+    .sort(
+      (a, b) =>
+        SECTIONS.findIndex((s) => s.part === a.part) -
+        SECTIONS.findIndex((s) => s.part === b.part),
+    )
+    .map((task) => {
+      const sectionIndex = SECTIONS.findIndex((s) => s.part === task.part);
+      const itemIndex = (counters[task.part] = (counters[task.part] ?? 0) + 1);
+      return {
+        task,
+        sectionLabel: `SECTION ${sectionIndex + 1}-${itemIndex}`,
+        partLabel: PART_LABEL[task.part],
+      };
+    });
+}
+
+function DomainScoreRow({ domain }: { domain: ReportDomainScore }) {
+  const total = 5;
+  const filled = Math.round((domain.score / 100) * total);
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full items-center justify-between whitespace-nowrap text-body-sm text-primary">
+        <p>{AREA_LABEL[domain.area] ?? domain.area}</p>
+        <p>
+          {filled} / {total}
+        </p>
+      </div>
+      <ScoreBar score={domain.score} />
+    </div>
+  );
+}
 
 export default function ResultPage({
   params,
@@ -29,17 +83,20 @@ export default function ResultPage({
 
   if (isLoading) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 px-6 py-14">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <main className="flex min-h-screen flex-col items-center gap-5 bg-page-bg">
+        <div className="h-20 w-full bg-white" />
+        <div className="flex w-full max-w-250 flex-col gap-4 px-6">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
       </main>
     );
   }
 
   if (isError || !data) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl items-center justify-center px-6">
+      <main className="flex min-h-screen items-center justify-center bg-page-bg px-6">
         <p className="text-body-lg text-icon-70">
           리포트를 불러올 수 없습니다.
         </p>
@@ -47,96 +104,67 @@ export default function ResultPage({
     );
   }
 
+  const sectioned = withSectionLabels(data.tasks);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-14">
-      {/* 헤더: 등급 + 응시자/응시일 */}
-      <header className="flex flex-col gap-2">
-        <p className="text-body-sm text-icon-70">
-          {data.candidateName} ·{' '}
-          {new Date(data.startedAt).toLocaleDateString('ko-KR')}
-        </p>
-        <div className="flex items-end gap-3">
-          <span className="text-title-lg text-icon-90">{data.finalGrade}</span>
-          <span className="text-body-sm text-icon-50">
-            상위 {data.percentile}% (참고용)
-          </span>
-        </div>
+    <main className="flex min-h-screen flex-col items-center gap-5 bg-page-bg">
+      {/* 페이지 상단 헤더 */}
+      <header className="flex w-full items-center justify-between border-b border-neutral-30 bg-white px-30 py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
+        </Link>
+        <MypageMenuButton />
       </header>
 
-      {/* 영역별 점수 */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-title-sm text-icon-90">영역별 점수</h2>
-        <ul className="flex flex-col gap-2">
-          {data.domainScores.map((d) => (
-            <li key={d.area} className="flex items-center gap-3">
-              <span className="w-32 text-body-md text-icon-70">
-                {AREA_LABEL[d.area] ?? d.area}
-              </span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-20">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${d.score}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-body-md text-icon-90">
-                {d.score}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* 증명서 형태 리포트 카드 */}
+      <div className="flex w-full max-w-250 flex-col gap-8 rounded-16 bg-white px-16 py-14">
+        <div className="flex w-full items-center justify-between">
+          <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
+          <p className="text-body-sm text-icon-90">OFFICIAL REPORT</p>
+        </div>
 
-      {/* 문항별 결과 */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-title-sm text-icon-90">문항별 결과</h2>
-        <ul className="flex flex-col gap-4">
-          {data.tasks.map((t, i) => (
-            <li
-              key={t.questionId}
-              className="flex flex-col gap-2 rounded-8 border border-neutral-30 bg-white p-4"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-body-md text-icon-90">문항 {i + 1}</span>
-                {t.skipped && (
-                  <span className="text-body-sm text-icon-50">건너뜀</span>
-                )}
-              </div>
-              {t.response && (
-                <p className="text-body-sm text-icon-70">{t.response}</p>
-              )}
-              {t.requiredPoints && (
-                <ul className="flex flex-col gap-1">
-                  {t.requiredPoints.map((p, j) => (
-                    <li key={j} className="text-body-sm text-icon-70">
-                      {p.met ? '✓' : '✗'} {p.description}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+        <hr className="w-full border-t border-neutral-30" />
 
-      {/* 부정행위 로그 */}
-      {data.violations.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-title-sm text-icon-90">모니터링 기록</h2>
-          <ul className="flex flex-col gap-1">
-            {data.violations.map((v, i) => (
-              <li
-                key={i}
-                className="flex justify-between text-body-sm text-icon-70"
-              >
-                <span>
-                  {v.eventType} ({v.severity})
-                </span>
-                <span>{v.count}회</span>
-              </li>
+        <p className="text-title-md tracking-[-0.48px] text-icon-90">
+          {data.candidateName}
+        </p>
+
+        {/* 종합 점수 */}
+        <div className="flex w-full flex-col gap-8">
+          <p className="w-full text-title-sm text-icon-90">Overall Score</p>
+          <div className="flex w-full items-center justify-between">
+            <div className="flex w-50 shrink-0 items-center justify-center">
+              <GradeBadge grade={data.finalGrade} />
+            </div>
+            <div className="flex w-full max-w-[635px] flex-col gap-5">
+              {data.domainScores.map((d) => (
+                <DomainScoreRow key={d.area} domain={d} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 문항별 결과 */}
+        <div className="flex w-full flex-col gap-4">
+          <div className="flex w-full flex-col gap-1">
+            <p className="text-title-sm text-icon-90">Task-by-Task Results</p>
+            <p className="text-body-sm text-icon-50">
+              Each task has required points. This shows which ones your response
+              covered.
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-4">
+            {sectioned.map(({ task, sectionLabel, partLabel }) => (
+              <TaskFeedbackCard
+                key={task.questionId}
+                sectionLabel={sectionLabel}
+                partLabel={partLabel}
+                task={task}
+              />
             ))}
-          </ul>
-        </section>
-      )}
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
