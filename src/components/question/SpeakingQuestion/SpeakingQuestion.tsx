@@ -10,6 +10,7 @@ import IcMicrophone from '@/app/assets/icons/icon_microphone.svg';
 import type { SpeakingQuestionData } from '@/types/exam';
 
 import { getErrorMessage } from '@/lib/api/client';
+import { skipQuestion } from '@/lib/api/exam';
 import { cn } from '@/lib/utils/cn';
 import { getUserMedia } from '@/lib/utils/getUserMedia';
 
@@ -187,10 +188,15 @@ export function SpeakingQuestion({
       };
       recorder.stop();
     } else {
-      // 녹음 자체를 못 한 경우(마이크 거부 등) — 제출 없이 다음으로.
+      // 녹음 자체를 못 한 경우(마이크 거부 등) — 답안 대신 skip 처리 후 다음으로.
+      // best-effort: 실패해도(이미 종료된 세션 등) 시험 흐름은 막지 않는다.
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      setPhase('done');
-      onSubmitted?.();
+      skipQuestion(sessionId, question.questionId)
+        .catch(() => {})
+        .finally(() => {
+          setPhase('done');
+          onSubmitted?.();
+        });
     }
   };
 
