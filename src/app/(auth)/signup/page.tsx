@@ -32,7 +32,7 @@ import {
   TosModal,
   VoiceDataModal,
 } from '@/components/common/Modal/TermsModals';
-import Header from '@/components/landing/Header';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const EMAIL_CODE_TTL_SECONDS = 180;
 
@@ -223,16 +223,16 @@ export default function SignupPage() {
     }
     signUp.mutate(
       { ...data, companyCode: data.companyCode || undefined },
-      // TODO: 바로 인증 절차 밟도록 하드 코딩 되어 있음. 추후 논의 후 "/exams"으로 수정
-      { onSuccess: () => router.push('/2/identity') },
+      // 가입 완료 후엔 랜딩으로. 응시는 랜딩의 "Take Test"로만 시작.
+      { onSuccess: () => router.replace('/') },
     );
   };
 
   return (
     <main>
-      <Header />
+      <PageHeader variant="public" />
 
-      <section className="flex min-h-screen flex-col items-center bg-page-bg">
+      <section className="flex min-h-screen flex-col items-center bg-page-bg pt-20">
         <div className="flex w-full max-w-190 flex-col items-center pt-12.5 pb-20">
           <form
             onSubmit={handleSubmit(onSubmit)}

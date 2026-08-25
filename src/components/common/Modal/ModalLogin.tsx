@@ -32,8 +32,8 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
     signIn.mutate(values, {
       onSuccess: () => {
         onClose();
-        // TODO: 임시 시험 id 사용. /[id]/identity로 수정하기
-        router.replace('/2/identity');
+        // 로그인 완료 후엔 무조건 랜딩으로. 응시는 랜딩의 "Take Test"로만 시작.
+        router.replace('/');
       },
     });
   };
@@ -70,7 +70,7 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
 
         {signIn.isError && (
           <p className="text-sm text-red-500">
-            이메일 또는 비밀번호를 확인해주세요.
+            Please check your email or password.
           </p>
         )}
 

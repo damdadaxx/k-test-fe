@@ -1,7 +1,5 @@
 import type {
   AnswerResponse,
-  ApplyExamResponse,
-  ExamListItem,
   ExamSessionStatusResponse,
   MyExamItem,
   SaveAnswerRequest,
@@ -12,24 +10,23 @@ import type { UploadUrlResponse } from '@/types/identity';
 
 import { apiClient } from './client';
 
-export const getExams = () =>
-  apiClient.get<ExamListItem[]>('/exams').then((res) => res.data);
-
-// 내가 신청한 회차 현황 (신청여부/세션상태). /exams에서 신청완료 회차 판별에 쓴다.
+// 내 응시 세션 현황(회차 개념 제거, 재응시 세션별 여러 줄).
 export const getMyExams = () =>
   apiClient.get<MyExamItem[]>('/mypage').then((res) => res.data);
 
-export const applyExam = (examId: string) =>
+// 진행중 세션 조회 — 있으면 "이어서 풀기", 없으면(null) "응시하기".
+export const getCurrentSession = () =>
   apiClient
-    .post<ApplyExamResponse>(`/exams/${examId}/apply`)
+    .get<ExamSessionStatusResponse | null>('/exam-sessions/current')
     .then((res) => res.data);
 
-export const startExamSession = (examId: string) =>
+// 시험 시작/재개 — 회차 id 없이 세션 하나로 처리(진행중이면 그 세션 반환). 반복 재접속 3회째 403.
+export const startExamSession = () =>
   apiClient
-    .post<StartExamSessionResponse>(`/exams/${examId}/sessions`)
+    .post<StartExamSessionResponse>('/exam-sessions')
     .then((res) => res.data);
 
-// 세션 상태 조회 — 진입 시 INPROGRESS가 아니면(종료/차단) 진행 불가.
+// 세션 상태 조회 — status + verified(인증 완료 여부).
 export const getExamSession = (examSessionId: string) =>
   apiClient
     .get<ExamSessionStatusResponse>(`/exam-sessions/${examSessionId}`)
@@ -79,7 +76,3 @@ export const getAnswer = (examSessionId: string, questionId: string) =>
       `/exam-sessions/${examSessionId}/questions/${questionId}/answer`,
     )
     .then((res) => res.data);
-
-// TODO(5): submissions 리소스와의 관계가 정리되면 실제 "시험 최종 제출" 엔드포인트로 교체
-export const submitTest = (sessionId: string) =>
-  apiClient.post('/test/submit', { sessionId }).then((res) => res.data);

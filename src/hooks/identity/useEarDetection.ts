@@ -4,7 +4,7 @@ import { detectEarphone } from '@/lib/api/identity';
 
 import { useSessionStore } from '@/store/sessionStore';
 
-export function useEarDetection(examId: string) {
+export function useEarDetection(examSessionId: string) {
   const setEarCheckVerified = useSessionStore(
     (state) => state.setEarCheckVerified,
   );
@@ -16,7 +16,7 @@ export function useEarDetection(examId: string) {
     }: {
       leftEarImage: Blob;
       rightEarImage: Blob;
-    }) => detectEarphone({ examId, leftEarImage, rightEarImage }),
+    }) => detectEarphone({ examSessionId, leftEarImage, rightEarImage }),
     onSuccess: (data) => setEarCheckVerified(!data.earphoneDetected),
   });
 }

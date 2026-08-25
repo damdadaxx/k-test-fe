@@ -4,16 +4,14 @@ import img_landing from '@/app/assets/images/img_landing.svg';
 
 import { cn } from '@/lib/utils/cn';
 
-import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
-
-import { CheckListItem } from './CheckListItem';
+import { TakeTestButton } from './TakeTestButton';
 
 export function HeroSection() {
   return (
     <section
       className={cn(
         'w-full flex justify-center my-[8.75vw]',
-        'desktop:my-[126px]',
+        'tablet:my-[126px]',
       )}
     >
       <div
@@ -24,36 +22,21 @@ export function HeroSection() {
         <div
           className={cn(
             'flex flex-col items-end justify-between gap-[120px]',
-            'desktop:flex-row',
+            'tablet:flex-row',
           )}
         >
           {/* Paragraph Section */}
           <div
             className={cn(
               'flex flex-col gap-[62px] order-2 text-center',
-              'desktop:order-1 w-full desktop:text-left',
+              'tablet:order-1 w-full tablet:text-left',
             )}
           >
             <h1 className="text-4xl font-bold text-[60px] text-black leading-[70px]">
               Certify your Korean proficiency <br />
               anywhere, anytime
             </h1>
-            <ul
-              className={cn(
-                'flex flex-col gap-2 items-center',
-                'desktop:items-start',
-              )}
-            >
-              <CheckListItem>
-                Take the test online. No appointment needed.
-              </CheckListItem>
-              <CheckListItem>
-                Get your results within 48 hours after the test.
-              </CheckListItem>
-            </ul>
-            <ButtonPrimary as="link" href="/exams">
-              Take Test
-            </ButtonPrimary>
+            <TakeTestButton />
           </div>
 
           {/* Image Section */}
@@ -65,7 +48,7 @@ export function HeroSection() {
             priority
             className={cn(
               'order-1 max-w-[479px] aspect-479/424 w-full m-auto',
-              'desktop:order-2 desktop:mr-0',
+              'tablet:order-2 tablet:mr-0',
             )}
           />
         </div>

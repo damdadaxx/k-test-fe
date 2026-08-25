@@ -28,7 +28,7 @@ export default function SectionIntroPage({
 }) {
   const { id: sessionId, moduleId } = use(params);
   const router = useRouter();
-  useExamSessionGuard(sessionId);
+  const { canAccess } = useExamSessionGuard(sessionId);
 
   // 섹션 소개 화면에선 "이번 문제 남은 시간"을 0으로 리셋(이전 섹션 잔여값 제거).
   // 실제 문항 시간은 각 문항(SpeakingQuestion) 진입 시 다시 세팅된다.
@@ -43,6 +43,9 @@ export default function SectionIntroPage({
     queryKey: ['session-questions', sessionId],
     queryFn: () => getSessionQuestions(sessionId),
   });
+
+  // 세션 상태 확인 끝나기 전(또는 실격/차단 등)엔 문항 내용을 안 보여준다.
+  if (!canAccess) return null;
 
   const section = getSection(moduleId);
   if (!section) return null;

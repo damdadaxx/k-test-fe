@@ -52,8 +52,8 @@
      예) className="text-body-sm tablet:text-body-md" */
   --breakpoint-*: initial;
   --breakpoint-mobile: 375px;
-  --breakpoint-tablet: 744px;
-  --breakpoint-desktop: 1024px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-desktop: 1440px;
 
   /* Font Style */
   --font-sans: var(--font-pretendard);

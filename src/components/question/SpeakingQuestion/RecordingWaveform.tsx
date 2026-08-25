@@ -7,7 +7,7 @@ const BAR_COUNT = 24;
 export function RecordingWaveform() {
   return (
     <div
-      className="flex h-[35px] items-center justify-center gap-[3px] mt-[33px] mb-[20px]"
+      className="flex h-[35px] items-center justify-center gap-[3px] mb-[20px]"
       role="status"
       aria-label="녹음 중"
     >

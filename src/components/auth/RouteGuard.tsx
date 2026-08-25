@@ -19,7 +19,7 @@ export function RouteGuard({ mode, children }: RouteGuardProps) {
   const token = useAuthToken();
   const isResolved = token !== undefined;
   const shouldRedirect = mode === 'protected' ? !token : Boolean(token);
-  const redirectTo = mode === 'protected' ? '/' : '/exams';
+  const redirectTo = '/';
 
   useEffect(() => {
     if (isResolved && shouldRedirect) {

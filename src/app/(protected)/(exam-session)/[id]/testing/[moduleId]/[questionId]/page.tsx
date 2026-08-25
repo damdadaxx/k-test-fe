@@ -72,7 +72,7 @@ export default function TestingQuestionPage({
 }) {
   const { id: sessionId, moduleId, questionId } = use(params);
   const router = useRouter();
-  useExamSessionGuard(sessionId);
+  const { canAccess } = useExamSessionGuard(sessionId);
 
   const { data: rawQuestions } = useQuery({
     queryKey: ['session-questions', sessionId],
@@ -86,6 +86,9 @@ export default function TestingQuestionPage({
   const rawQuestion = currentIndex >= 0 ? sectionQuestions[currentIndex] : null;
   const nextRawQuestion =
     currentIndex >= 0 ? sectionQuestions[currentIndex + 1] : undefined;
+
+  // 세션 상태 확인 끝나기 전(또는 실격/차단 등)엔 문항 내용을 안 보여준다.
+  if (!canAccess) return null;
 
   if (!rawQuestion) {
     return (
