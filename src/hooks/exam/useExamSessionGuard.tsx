@@ -32,6 +32,8 @@ const DEV_SKIP_SESSION_GUARD =
 
 // 시험 세션 화면 진입 시 상태를 확인해, INPROGRESS가 아니거나 접근 불가면
 // 안내 모달을 띄우고 회차 목록으로 돌려보낸다.
+// 조회가 끝나기 전까진 canAccess가 false — 호출부가 이 값으로 렌더를 막아야
+// (실격/차단된 세션인데도 조회 응답 오기 전까지 문항 내용이 잠깐 보이는 걸 방지).
 export function useExamSessionGuard(sessionId: string) {
   const router = useRouter();
   const { openModal, closeModal } = useModal();
@@ -42,6 +44,7 @@ export function useExamSessionGuard(sessionId: string) {
     retry: false,
     enabled: !DEV_SKIP_SESSION_GUARD,
   });
+  const canAccess = DEV_SKIP_SESSION_GUARD || data?.status === 'INPROGRESS';
 
   useEffect(() => {
     if (DEV_SKIP_SESSION_GUARD || shownRef.current) return;
@@ -73,4 +76,6 @@ export function useExamSessionGuard(sessionId: string) {
     // 진입 시 1회 판정 — data/isError 변화에만 반응.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isError]);
+
+  return { canAccess };
 }
