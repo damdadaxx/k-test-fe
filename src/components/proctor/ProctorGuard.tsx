@@ -26,13 +26,21 @@ const FOCUS_COALESCE_MS = 50;
 const MOUSE_LEAVE_SUSTAIN_MS = 3000;
 const MOUSE_LEAVE_THROTTLE_MS = 30000;
 
+/** 부정행위 감지 경고 문구
+ * - TAB_SWITCH: '탭 이탈이 감지되었습니다. 시험 화면을 유지해주세요.'
+ * - BLUR: '창 전환이 감지되었습니다. 시험 화면을 유지해주세요.'
+ * - WINDOW_CLOSE_ATTEMPT: '시험 중에는 창을 닫을 수 없습니다.'
+ * - MOUSE_LEAVE: '마우스가 화면을 벗어났습니다.'
+ * - PASTE: '붙여넣기는 허용되지 않습니다.'
+ * - DUAL_MONITOR: '듀얼 모니터가 감지되었습니다. 하나의 화면만 사용해주세요.'
+ */
 const WARNING: Record<ViolationType, string> = {
-  TAB_SWITCH: '탭 이탈이 감지되었습니다. 시험 화면을 유지해주세요.',
-  BLUR: '창 전환이 감지되었습니다. 시험 화면을 유지해주세요.',
-  WINDOW_CLOSE_ATTEMPT: '시험 중에는 창을 닫을 수 없습니다.',
-  MOUSE_LEAVE: '마우스가 화면을 벗어났습니다.',
-  PASTE: '붙여넣기는 허용되지 않습니다.',
-  DUAL_MONITOR: '듀얼 모니터가 감지되었습니다. 하나의 화면만 사용해주세요.',
+  TAB_SWITCH: 'Tab switching detected. Please stay on the exam screen.',
+  BLUR: 'Window focus lost. Please stay on the exam screen.',
+  WINDOW_CLOSE_ATTEMPT: 'You cannot close the window during the exam.',
+  MOUSE_LEAVE: 'Your mouse has left the exam screen.',
+  PASTE: 'Pasting is not allowed.',
+  DUAL_MONITOR: 'Dual monitors detected. Please use only one screen.',
 };
 
 /**
