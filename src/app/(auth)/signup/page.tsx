@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -50,7 +50,6 @@ export default function SignupPage() {
   const {
     register,
     control,
-    watch,
     setValue,
     setError,
     clearErrors,
@@ -88,14 +87,18 @@ export default function SignupPage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [sendCodeError, setSendCodeError] = useState<string | null>(null);
 
-  const email = watch('email');
+  const email = useWatch({ control, name: 'email' });
 
-  useEffect(() => {
+  // 이메일 바뀌면 인증 상태 리셋 — effect 대신 렌더 중 조정(React 권장 패턴,
+  // effect+setState 캐스케이드 렌더 방지).
+  const [prevEmail, setPrevEmail] = useState(email);
+  if (email !== prevEmail) {
+    setPrevEmail(email);
     setEmailSendState('idle');
     setVerifyState('idle');
     setEmailCode('');
     setSendCodeError(null);
-  }, [email]);
+  }
 
   useEffect(() => {
     if (emailSendState !== 'sent' || verifyState === 'verified') return;
@@ -190,10 +193,19 @@ export default function SignupPage() {
     );
   };
 
-  const agreedToTerms = watch('agreedToTerms');
-  const agreedToPrivacyPolicy = watch('agreedToPrivacyPolicy');
-  const agreedToPassportProcessing = watch('agreedToPassportProcessing');
-  const agreedToVoiceDataAiTraining = watch('agreedToVoiceDataAiTraining');
+  const agreedToTerms = useWatch({ control, name: 'agreedToTerms' });
+  const agreedToPrivacyPolicy = useWatch({
+    control,
+    name: 'agreedToPrivacyPolicy',
+  });
+  const agreedToPassportProcessing = useWatch({
+    control,
+    name: 'agreedToPassportProcessing',
+  });
+  const agreedToVoiceDataAiTraining = useWatch({
+    control,
+    name: 'agreedToVoiceDataAiTraining',
+  });
 
   const allAgreed = Boolean(
     agreedToTerms &&
