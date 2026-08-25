@@ -20,9 +20,8 @@ export function useSubmitAudio(sessionId: string, questionId: string) {
         questionId,
         contentType,
       );
-      await uploadToSignedUrl(signedUrl, blob);
+      await uploadToSignedUrl(signedUrl, blob, contentType);
       return saveAnswer(sessionId, questionId, {
-        type: 'AUDIO',
         audioFileUrl: path,
         durationMs,
       });

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import type { ViolationResponse, ViolationType } from '@/types/proctor';
 
 import { reportViolation } from '@/lib/api/monitoring';
-import { PROCTOR_DISABLED } from '@/lib/proctor/config';
+import { PROCTOR_DISABLED, PROCTOR_GUARD_DISABLED } from '@/lib/proctor/config';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -46,7 +46,7 @@ export function ProctorGuard({ examSessionId }: { examSessionId: string }) {
   const stoppedRef = useRef(false);
 
   useEffect(() => {
-    if (PROCTOR_DISABLED) return;
+    if (PROCTOR_DISABLED || PROCTOR_GUARD_DISABLED) return;
 
     const showWarning = (type: ViolationType) => {
       openModal(

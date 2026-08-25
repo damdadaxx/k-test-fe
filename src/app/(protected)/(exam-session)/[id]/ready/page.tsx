@@ -62,11 +62,13 @@ export default function ReadyPage({
         onClose={backToIdentity}
         className="flex w-90 flex-col items-center gap-6 text-center"
       >
+        {/* 본인인증이 아직 완료되지 않았습니다. 본인인증을 다시 진행해주세요. */}
         <p className="text-body-lg text-primary">
-          본인인증이 아직 완료되지 않았습니다. 본인인증을 다시 진행해주세요.
+          Identity verification is not yet complete. <br />
+          Please try verifying your identity again.
         </p>
         <ButtonPrimary width={140} onClick={backToIdentity}>
-          확인
+          Confirm
         </ButtonPrimary>
       </ModalBase>,
     );
@@ -130,12 +132,15 @@ export default function ReadyPage({
             onClose={closeModal}
             className="flex w-90 flex-col items-center gap-6 text-center"
           >
+            {/* 시험을 시작하기 위해 카메라와 마이크 권한이 필요합니다. 원활한
+              진행을 위해 권한을 허용해 주세요. */}
             <p className="text-body-lg text-primary">
-              시험을 시작하기 위해 카메라와 마이크 권한이 필요합니다. 원활한
-              진행을 위해 권한을 허용해 주세요.
+              Camera and microphone permissions are required to start the exam.
+              <br />
+              Please allow access for a smooth experience.
             </p>
             <ButtonPrimary width={140} onClick={closeModal}>
-              확인
+              Confirm
             </ButtonPrimary>
           </ModalBase>,
         );
@@ -186,7 +191,7 @@ export default function ReadyPage({
         className="pointer-events-none fixed size-px opacity-0"
       />
       <main className="relative flex flex-1 flex-col items-center">
-        <p className="mt-[52px] text-title-lg tracking-[-0.64px] text-icon-90">
+        <p className="mt-[52px] text-title-lg tracking-[-0.64px] text-icon-90 text-center">
           {isDot
             ? 'Preparation is complete. Please look at the dot below.'
             : 'The test will now begin.'}

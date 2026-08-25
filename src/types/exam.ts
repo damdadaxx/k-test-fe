@@ -113,10 +113,10 @@ export type Question = SpeakingQuestionData;
 
 export type AnswerType = 'TEXT' | 'AUDIO';
 
+// 백엔드 SaveAnswerDto엔 audioFileUrl/durationMs만 있음(whitelist 검증이라 그 외 필드
+// 보내면 400 "property X should not exist"). type/contentText는 응답(AnswerResponse)에만 있음.
 export interface SaveAnswerRequest {
-  type: AnswerType;
-  contentText?: string;
-  audioFileUrl?: string;
+  audioFileUrl: string;
   durationMs?: number;
 }
 

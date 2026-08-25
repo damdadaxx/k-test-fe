@@ -131,7 +131,7 @@ export function IdCardUpload({ onUpload }: { onUpload: (file: File) => void }) {
         <p className="text-[12px] text-error">{error}</p>
       ) : (
         <p className="text-[12px] text-icon-30">
-          Supported formats: JPG, PNG, PDF (5MB)
+          Supported formats: JPG, PNG, PDF (1MB)
         </p>
       )}
     </div>

@@ -100,7 +100,7 @@ export function WebcamMonitor({
           eventId,
           contentType,
         );
-        await uploadToSignedUrl(signedUrl, clip);
+        await uploadToSignedUrl(signedUrl, clip, contentType);
 
         if (cancelled) return;
 

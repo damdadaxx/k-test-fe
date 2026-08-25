@@ -20,7 +20,7 @@ export function useIdentityVerify(examSessionId: string) {
         'ID_CARD',
         file.type,
       );
-      await uploadToSignedUrl(signedUrl, file);
+      await uploadToSignedUrl(signedUrl, file, file.type);
       return path;
     },
     onSuccess: setIdCardPath,
@@ -31,12 +31,13 @@ export function useIdentityVerify(examSessionId: string) {
       if (!idCardPath) {
         throw new Error('신분증을 먼저 업로드해주세요.');
       }
+      const faceContentType = faceBlob.type || 'image/jpeg';
       const { path: facePath, signedUrl } = await getIdCardUploadUrl(
         examSessionId,
         'FACE',
-        faceBlob.type || 'image/jpeg',
+        faceContentType,
       );
-      await uploadToSignedUrl(signedUrl, faceBlob);
+      await uploadToSignedUrl(signedUrl, faceBlob, faceContentType);
       return verifyIdCard({
         examSessionId,
         capturedAt: new Date().toISOString(),

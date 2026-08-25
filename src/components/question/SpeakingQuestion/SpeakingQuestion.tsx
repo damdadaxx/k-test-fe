@@ -229,9 +229,11 @@ export function SpeakingQuestion({
       ? listeningParts[0]
       : (listeningParts[1] ?? listeningParts[0])
     : question.instruction;
+  // 남은 재생 가능 횟수 안내는 백엔드 값 대신 고정 문구(피그마 스펙)로 표시.
+  const remainingListens = MAX_LISTENS - listenCount;
   const subText = isListening
-    ? listenCount < MAX_LISTENS
-      ? (question.guideTexts[1] ?? '')
+    ? remainingListens > 0
+      ? `${remainingListens}번 다시 들을 수 있습니다.`
       : '음성을 다시 들을 수 없습니다.'
     : question.guideTexts[0];
 
@@ -272,7 +274,7 @@ export function SpeakingQuestion({
         )}
       </div>
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center mt-[33px]">
         {isRecording && <RecordingWaveform />}
 
         {phase === 'prep' ? (
