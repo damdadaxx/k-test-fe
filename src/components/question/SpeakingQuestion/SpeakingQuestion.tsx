@@ -10,7 +10,6 @@ import IcMicrophone from '@/app/assets/icons/icon_microphone.svg';
 import type { SpeakingQuestionData } from '@/types/exam';
 
 import { getErrorMessage } from '@/lib/api/client';
-import { skipQuestion } from '@/lib/api/exam';
 import { cn } from '@/lib/utils/cn';
 import { getUserMedia } from '@/lib/utils/getUserMedia';
 
@@ -130,8 +129,41 @@ export function SpeakingQuestion({
       setRecordRemaining(question.answerSeconds);
       setPhase('recording');
     } catch {
-      // ponytail: 마이크 권한 거부 시 녹음 불가 — 일단 다음 문제로 넘긴다(추후 에러 UI).
-      finish(false);
+      // 마이크 권한 거부/실패 — 스킵하지 않고 안내 후 다시 시도할 수 있게 한다.
+      // 단, 브라우저에서 이미 명시적으로 "차단"된 상태면 getUserMedia를 다시 불러도
+      // 네이티브 권한 팝업 자체가 다시 뜨지 않는다(브라우저 정책, 코드로 우회 불가) —
+      // 그 경우엔 "다시 시도" 대신 브라우저 설정에서 직접 허용하라고 안내해야 한다.
+      startedRef.current = false;
+      const permission = await navigator.permissions
+        .query({ name: 'microphone' as PermissionName })
+        .catch(() => null);
+      const blocked = permission?.state === 'denied';
+
+      openModal(
+        <ModalBase
+          onClose={closeModal}
+          className="flex w-90 flex-col items-center gap-6 text-center"
+        >
+          <p className="text-body-lg text-primary">
+            {blocked
+              ? '마이크 권한이 브라우저에서 차단되어 있습니다. 주소창의 사이트 설정에서 마이크 권한을 허용으로 바꾼 뒤 새로고침해주세요.'
+              : '마이크 접근 권한이 필요합니다. 권한을 허용한 뒤 다시 시도해주세요.'}
+          </p>
+          <ButtonPrimary
+            width={140}
+            onClick={
+              blocked
+                ? closeModal
+                : () => {
+                    closeModal();
+                    startRecording();
+                  }
+            }
+          >
+            {blocked ? '확인' : '다시 시도'}
+          </ButtonPrimary>
+        </ModalBase>,
+      );
     }
   };
 
@@ -156,48 +188,37 @@ export function SpeakingQuestion({
     );
   };
 
-  const finish = (submit: boolean) => {
+  const finish = () => {
     if (finishedRef.current) return;
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
     finishedRef.current = true;
 
-    const recorder = mediaRecorderRef.current;
-    if (submit && recorder && recorder.state !== 'inactive') {
-      recorder.onstop = () => {
-        // 실제 녹음 코덱(예: audio/webm;codecs=opus)으로 라벨 — 재생 호환성 위해.
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType || 'audio/webm',
-        });
-        const durationMs = recordStartedAtRef.current
-          ? Date.now() - recordStartedAtRef.current
-          : 0;
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-        // 제출 성공해야 다음 문제로. 실패(409 종료/차단 등)면 모달 경고.
-        submitAudio.mutate(
-          { blob, durationMs },
-          {
-            onSuccess: () => {
-              setPhase('done');
-              onSubmitted?.();
-            },
-            onError: (error) => {
-              setPhase('done');
-              showSubmitError(error);
-            },
-          },
-        );
-      };
-      recorder.stop();
-    } else {
-      // 녹음 자체를 못 한 경우(마이크 거부 등) — 답안 대신 skip 처리 후 다음으로.
-      // best-effort: 실패해도(이미 종료된 세션 등) 시험 흐름은 막지 않는다.
+    recorder.onstop = () => {
+      // 실제 녹음 코덱(예: audio/webm;codecs=opus)으로 라벨 — 재생 호환성 위해.
+      const blob = new Blob(chunksRef.current, {
+        type: recorder.mimeType || 'audio/webm',
+      });
+      const durationMs = recordStartedAtRef.current
+        ? Date.now() - recordStartedAtRef.current
+        : 0;
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      skipQuestion(sessionId, question.questionId)
-        .catch(() => {})
-        .finally(() => {
-          setPhase('done');
-          onSubmitted?.();
-        });
-    }
+      // 제출 성공해야 다음 문제로. 실패(409 종료/차단 등)면 모달 경고.
+      submitAudio.mutate(
+        { blob, durationMs },
+        {
+          onSuccess: () => {
+            setPhase('done');
+            onSubmitted?.();
+          },
+          onError: (error) => {
+            setPhase('done');
+            showSubmitError(error);
+          },
+        },
+      );
+    };
+    recorder.stop();
   };
 
   // 준비 카운트다운: 매초 감소, 마지막 초에 자동으로 녹음 시작(전이는 타이머 콜백에서).
@@ -216,7 +237,7 @@ export function SpeakingQuestion({
   useEffect(() => {
     if (phase !== 'recording') return;
     const t = setTimeout(() => {
-      if (recordRemaining <= 1) finish(true);
+      if (recordRemaining <= 1) finish();
       else setRecordRemaining((s) => s - 1);
     }, 1000);
     return () => clearTimeout(t);
