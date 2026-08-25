@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getErrorMessage } from '@/lib/api/client';
 import { getSessionQuestions } from '@/lib/api/exam';
 import { SECTIONS, getResumeQuestion } from '@/lib/exam/sections';
+import { isChromiumBrowser } from '@/lib/utils/browserSupport';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -17,6 +18,7 @@ import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 
 // 시험 응시 시작 진입점(랜딩의 유일한 응시 버튼).
+// 크로미움 계열(Chrome/Edge/Brave/Opera/Vivaldi) 아니면 안내 모달만 띄우고 막는다(기획 변경).
 // 미로그인이면 로그인 모달. 로그인 상태면:
 //   - 진행중(INPROGRESS) 세션이 있으면 확인 모달을 먼저 보여줌(POST /exam-sessions 자체는
 //     INPROGRESS여도 거부하지 않고 그 세션을 그대로 돌려주지만(재개), 반복 재접속 3회째부턴
@@ -38,6 +40,30 @@ export function TakeTestButton() {
   // 캐시된 current-session을 다음 클릭 전에 반드시 최신화해둔다(기본 staleTime 60초라 방치하면 stale).
   const invalidateCurrentSession = () =>
     queryClient.invalidateQueries({ queryKey: ['current-session'] });
+
+  // 듀얼모니터 감지가 크로미움 계열 API에 의존해 다른 브라우저는 응시 자체를 막는다(Figma 40001152:11504).
+  const showUnsupportedBrowserModal = () => {
+    openModal(
+      <ModalBase
+        onClose={closeModal}
+        className="flex w-149.5 max-w-full flex-col items-center gap-7 text-center"
+      >
+        <p className="text-title-lg tracking-[-0.64px] text-icon-90">
+          Unsupported Browser
+        </p>
+        <p className="text-body-md text-icon-90">
+          This test only works on{' '}
+          <span className="font-bold">
+            Chrome, Edge, Brave, Opera, or Vivaldi.
+          </span>{' '}
+          Please switch to one of these browsers to continue.
+        </p>
+        <ButtonPrimary width={180} onClick={closeModal}>
+          Back
+        </ButtonPrimary>
+      </ModalBase>,
+    );
+  };
 
   const showErrorModal = (message: string) => {
     openModal(
@@ -103,6 +129,10 @@ export function TakeTestButton() {
   };
 
   const handleClick = () => {
+    if (!isChromiumBrowser()) {
+      showUnsupportedBrowserModal();
+      return;
+    }
     if (!token) {
       openModal(<ModalLogin onClose={closeModal} />);
       return;
