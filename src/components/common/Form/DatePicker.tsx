@@ -2,6 +2,10 @@
 
 import { useRef, useState } from 'react';
 
+import Image from 'next/image';
+
+import IcCalendar from '@/app/assets/icons/icon_calendar.svg';
+
 import { cn } from '@/lib/utils/cn';
 
 import { usePopoverDismiss } from '@/hooks/ui/usePopoverDismiss';
@@ -87,36 +91,13 @@ export default function DatePicker({
         <span className={value ? 'text-icon-90' : 'text-icon-30'}>
           {value || placeholder}
         </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
+        <Image
+          src={IcCalendar}
+          width={16}
+          height={16}
+          alt=""
           className="shrink-0"
-        >
-          <rect
-            x="1.5"
-            y="2.5"
-            width="13"
-            height="12"
-            rx="1.5"
-            stroke="#909090"
-            strokeWidth="1.2"
-          />
-          <path d="M1.5 6H14.5" stroke="#909090" strokeWidth="1.2" />
-          <path
-            d="M4.5 1V3.5"
-            stroke="#909090"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M11.5 1V3.5"
-            stroke="#909090"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-        </svg>
+        />
       </button>
 
       {isOpen && (

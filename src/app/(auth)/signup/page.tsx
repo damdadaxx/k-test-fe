@@ -32,7 +32,7 @@ import {
   TosModal,
   VoiceDataModal,
 } from '@/components/common/Modal/TermsModals';
-import Header from '@/components/landing/Header';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const EMAIL_CODE_TTL_SECONDS = 180;
 
@@ -230,9 +230,9 @@ export default function SignupPage() {
 
   return (
     <main>
-      <Header />
+      <PageHeader variant="public" />
 
-      <section className="flex min-h-screen flex-col items-center bg-page-bg">
+      <section className="flex min-h-screen flex-col items-center bg-page-bg pt-20">
         <div className="flex w-full max-w-190 flex-col items-center pt-12.5 pb-20">
           <form
             onSubmit={handleSubmit(onSubmit)}

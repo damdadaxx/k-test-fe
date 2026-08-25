@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getErrorMessage } from '@/lib/api/client';
 import { getSessionQuestions } from '@/lib/api/exam';
 import { SECTIONS, getResumeQuestion } from '@/lib/exam/sections';
+import { isChromiumBrowser } from '@/lib/utils/browserSupport';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -17,10 +18,14 @@ import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 
 // 시험 응시 시작 진입점(랜딩의 유일한 응시 버튼).
+// 크로미움 계열(Chrome/Edge/Brave/Opera/Vivaldi) 아니면 안내 모달만 띄우고 막는다(기획 변경).
 // 미로그인이면 로그인 모달. 로그인 상태면:
 //   - 진행중(INPROGRESS) 세션이 있으면 확인 모달을 먼저 보여줌(POST /exam-sessions 자체는
 //     INPROGRESS여도 거부하지 않고 그 세션을 그대로 돌려주지만(재개), 반복 재접속 3회째부턴
 //     403이라 사용자 확인 없이 자동 재개하지 않음).
+//     단, verified:false(본인인증 전, 즉 진행률 0 확정)면 모달 없이 바로 본인인증으로 보낸다
+//     (백엔드 확인: 재진행 여부 구분은 verified로 충분 — 본인인증만 하고 나간 경우까지는
+//     "진행 중인 시험 있음" 모달을 보여줘도 무방하다는 결론).
 //   - 그 외(세션 없음/SUBMITTED/EXPIRED/BLOCKED/DISQUALIFIED)는 항상 새 세션 생성 가능.
 export function TakeTestButton() {
   const router = useRouter();
@@ -35,6 +40,30 @@ export function TakeTestButton() {
   // 캐시된 current-session을 다음 클릭 전에 반드시 최신화해둔다(기본 staleTime 60초라 방치하면 stale).
   const invalidateCurrentSession = () =>
     queryClient.invalidateQueries({ queryKey: ['current-session'] });
+
+  // 듀얼모니터 감지가 크로미움 계열 API에 의존해 다른 브라우저는 응시 자체를 막는다(Figma 40001152:11504).
+  const showUnsupportedBrowserModal = () => {
+    openModal(
+      <ModalBase
+        onClose={closeModal}
+        className="flex w-149.5 max-w-full flex-col items-center gap-7 text-center"
+      >
+        <p className="text-title-lg tracking-[-0.64px] text-icon-90">
+          Unsupported Browser
+        </p>
+        <p className="text-body-md text-icon-90">
+          This test only works on{' '}
+          <span className="font-bold">
+            Chrome, Edge, Brave, Opera, or Vivaldi.
+          </span>{' '}
+          Please switch to one of these browsers to continue.
+        </p>
+        <ButtonPrimary width={180} onClick={closeModal}>
+          Back
+        </ButtonPrimary>
+      </ModalBase>,
+    );
+  };
 
   const showErrorModal = (message: string) => {
     openModal(
@@ -100,6 +129,10 @@ export function TakeTestButton() {
   };
 
   const handleClick = () => {
+    if (!isChromiumBrowser()) {
+      showUnsupportedBrowserModal();
+      return;
+    }
     if (!token) {
       openModal(<ModalLogin onClose={closeModal} />);
       return;
@@ -108,6 +141,10 @@ export function TakeTestButton() {
     // 바로 startNewSession()으로 빠져 사용자 동의 없이 재접속 카운트를 소모할 수 있다.
     if (isCurrentLoading) return;
     if (current?.status === 'INPROGRESS') {
+      if (!current.verified) {
+        resumeSession();
+        return;
+      }
       openModal(
         <ModalBase
           onClose={closeModal}

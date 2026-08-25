@@ -9,3 +9,7 @@ export const PROCTOR_DISABLED =
 // 탭 전환·붙여넣기 자주 할 때 매번 경고 모달 뜨는 걸 막기 위함. 운영에선 비움.
 export const PROCTOR_GUARD_DISABLED =
   process.env.NEXT_PUBLIC_PROCTOR_GUARD_DISABLED === 'true';
+
+// 개발용: 듀얼모니터 감지만 끈다(나머지 ProctorGuard 이벤트는 그대로). 운영에선 비움.
+export const PROCTOR_DUAL_MONITOR_DISABLED =
+  process.env.NEXT_PUBLIC_PROCTOR_DUAL_MONITOR_DISABLED === 'true';

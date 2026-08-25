@@ -70,7 +70,7 @@ export function ModalLogin({ onClose }: { onClose: () => void }) {
 
         {signIn.isError && (
           <p className="text-sm text-red-500">
-            이메일 또는 비밀번호를 확인해주세요.
+            Please check your email or password.
           </p>
         )}
 
