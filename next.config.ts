@@ -1,6 +1,18 @@
 import type { NextConfig } from 'next';
 
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://34.69.1.227:3000';
+// 실제 백엔드 주소로 조용히 잘못 폴백하는 것보다, 빠뜨렸을 때 바로 빌드/기동이 실패하는 게 낫다.
+if (!process.env.BACKEND_URL) {
+  throw new Error(
+    'BACKEND_URL env var is required (backend API address for the /api/backend proxy).',
+  );
+}
+const BACKEND_URL = process.env.BACKEND_URL;
+
+// 문항 이미지가 이 호스트의 공개 storage에서 옴(ImagePrompt.tsx) — 하드코딩하면 다른
+// Supabase 프로젝트로 배포 시 env만 바꾸고 여기 안 고치면 이미지가 깨진다.
+const SUPABASE_HOSTNAME = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : undefined;
 
 const nextConfig: NextConfig = {
   images: {
@@ -9,11 +21,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
       },
-      {
-        protocol: 'https',
-        hostname: 'hidvjegsroyezjruhkcg.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
+      ...(SUPABASE_HOSTNAME
+        ? [
+            {
+              protocol: 'https' as const,
+              hostname: SUPABASE_HOSTNAME,
+              pathname: '/storage/v1/object/public/**',
+            },
+          ]
+        : []),
     ],
   },
   // 백엔드 CORS_ORIGIN이 localhost:5173으로 고정돼 있어서(localhost:3000 미허용),
