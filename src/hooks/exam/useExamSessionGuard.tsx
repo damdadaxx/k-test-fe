@@ -12,12 +12,17 @@ import { useModal } from '@/providers/ModalProvider';
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import { ModalBase } from '@/components/common/Modal/ModalBase';
 
-// 종료/차단 세션 진입 시 보여줄 안내 문구.
+/** 종료/차단 세션 진입 시 보여줄 안내 문구.
+ * - BLOCKED: '반복적인 재접속으로 시험 응시가 제한되었습니다.'
+ * - DISQUALIFIED: '부정행위가 감지되어 시험이 실격 처리되었습니다.'
+ * - SUBMITTED: '이미 종료된 시험입니다.'
+ * - EXPIRED: '이미 종료된 시험입니다.'
+ */
 const STATUS_MESSAGE: Record<string, string> = {
-  BLOCKED: '반복적인 재접속으로 시험 응시가 제한되었습니다.',
-  DISQUALIFIED: '부정행위가 감지되어 시험이 실격 처리되었습니다.',
-  SUBMITTED: '이미 종료된 시험입니다.',
-  EXPIRED: '이미 종료된 시험입니다.',
+  BLOCKED: 'Your access has been restricted due to repeated reconnections.',
+  DISQUALIFIED: 'You have been disqualified due to suspected cheating.',
+  SUBMITTED: 'This exam has already ended.',
+  EXPIRED: 'This exam has already expired.',
 };
 
 // ponytail: 개발용. 켜면 진입 가드(종료/차단 세션 차단)를 건너뛴다 —
@@ -48,7 +53,7 @@ export function useExamSessionGuard(sessionId: string) {
     shownRef.current = true;
     const backToExams = () => {
       closeModal();
-      router.replace('/exams');
+      router.replace('/');
     };
     openModal(
       <ModalBase
@@ -57,11 +62,11 @@ export function useExamSessionGuard(sessionId: string) {
       >
         <p className="text-body-lg text-primary">
           {blockedStatus
-            ? (STATUS_MESSAGE[blockedStatus] ?? '이미 종료된 시험입니다.')
-            : '시험 세션에 접근할 수 없습니다.'}
+            ? (STATUS_MESSAGE[blockedStatus] ?? 'This exam has already ended.')
+            : 'Unable to access the exam session.'}
         </p>
         <ButtonPrimary width={140} onClick={backToExams}>
-          확인
+          Confirm
         </ButtonPrimary>
       </ModalBase>,
     );

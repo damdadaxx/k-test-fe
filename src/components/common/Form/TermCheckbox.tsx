@@ -28,7 +28,15 @@ export default function TermCheckbox({
       <div className="flex w-full items-center justify-between">
         <button
           type="button"
-          onClick={onOpenDetail ?? (() => onChange(!checked))}
+          onClick={() => {
+            // 체크 전엔 약관을 먼저 보여준다(동의는 모달의 Agree로만). 이미 체크된
+            // 상태에서 다시 누르면 모달을 또 띄우지 않고 바로 해제한다.
+            if (!checked && onOpenDetail) {
+              onOpenDetail();
+              return;
+            }
+            onChange(!checked);
+          }}
           className="relative flex flex-1 cursor-pointer items-center gap-2"
         >
           {checked ? (

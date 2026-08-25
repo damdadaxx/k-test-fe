@@ -43,8 +43,8 @@ export default function EarCheckPage({
     return result.earphoneDetected;
   };
 
-  // 본인인증 완료 → 준비 화면으로. 세션 시작(POST /exams/:id/sessions)은 /ready에서
-  // 단 한 번만 호출해 재개 남용 카운트가 여기서 소모되지 않게 한다. examId를 그대로 넘긴다.
+  // 본인인증 완료 → 준비 화면으로. 세션은 랜딩(Take Test)에서 이미 생성됨 —
+  // examId(=examSessionId)를 그대로 넘겨 /ready에서 캘리브레이션 후 같은 세션으로 진입.
   const handleNext = () => {
     router.push(`/${examId}/ready`);
   };

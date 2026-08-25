@@ -1,16 +1,51 @@
+'use client';
+
+import { use, useEffect, useRef } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
 
 import IcCheckedCircleLg from '@/app/assets/icons/icon_check_green_lg.svg';
 import ImgLogo from '@/app/assets/images/img_logo.svg';
 
-import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
+import { getMyExams } from '@/lib/api/exam';
 
-// TODO(기획 변경 대기 · 디자이너 확정 전): 이전 기획은 제출 즉시 리포트로 자동 이동
-// (진행바로 /mypage 폴링 → /report/{examResultId} 리다이렉트)이었다. 리포트 생성이 최대 5분
-// 걸릴 수 있어, "시험 완료 안내 + 마이페이지 유도"로 방향 변경(리포트 준비 시 이메일로 링크 발송).
-// 이전 방식의 폴링/리다이렉트 컴포넌트는 @/components/result/ResultProgress 에 보존(현재 미사용).
-export default function FinishPage() {
+import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
+import { MypageMenuButton } from '@/components/common/MypageMenuButton';
+
+// 채점은 보통 즉시 끝나지만 혹시 지연될 수 있어 examResultId가 나올 때까지 짧게 폴링.
+// 최대 대기 후에도 안 나오면 폴링만 멈추고(계속 "View Report" 비활성) 새로고침으로 재확인.
+const POLL_INTERVAL_MS = 2000;
+const MAX_WAIT_MS = 60000;
+
+export default function FinishPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: examSessionId } = use(params);
+  // 폴링 시작 시각(마운트 시 1회) — 최대 대기시간 판단 기준. ref 초기화는 effect에서(렌더는 순수해야 함).
+  const startedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    startedAtRef.current = Date.now();
+  }, []);
+  const { data: myExams } = useQuery({
+    queryKey: ['my-exams'],
+    queryFn: getMyExams,
+    refetchInterval: (query) => {
+      const ready = query.state.data?.some(
+        (e) => e.examSessionId === examSessionId && e.examResultId,
+      );
+      if (ready) return false;
+      const elapsed = Date.now() - (startedAtRef.current ?? Date.now());
+      return elapsed < MAX_WAIT_MS ? POLL_INTERVAL_MS : false;
+    },
+  });
+  const examResultId =
+    myExams?.find((e) => e.examSessionId === examSessionId)?.examResultId ??
+    null;
+
   return (
     <div className="flex min-h-screen flex-col bg-page-bg">
       <header className="border-b border-neutral-30 bg-white">
@@ -24,39 +59,38 @@ export default function FinishPage() {
             />
           </Link>
 
-          {/* TODO: 마이페이지(내 시험 현황) 라우트 생기면 교체(현재 /exams). */}
-          <ButtonPrimary
-            variant="line"
-            size="sm"
-            width={140}
-            as="link"
-            href="/exams"
-          >
-            Mypage
-          </ButtonPrimary>
+          <MypageMenuButton />
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-6 py-14">
-        {/* Success Card (Figma node 40000645:22475 기반, 진행바→안내 버튼으로 변경) */}
+        {/* Success Card (Figma node 40000645:22475) */}
         <div className="flex w-[680px] max-w-full flex-col items-center rounded-[24px] bg-white p-12 drop-shadow-[0px_8px_12px_rgba(0,0,0,0.03)]">
           {/* 성공 아이콘 배지 */}
           <Image src={IcCheckedCircleLg} width="60" height="60" alt="" />
 
           {/* 완료 안내 */}
           <p className="pb-3 pt-6 text-title-md tracking-[-0.48px] text-icon-90">
-            시험이 완료되었습니다!
+            You&rsquo;re all done!
           </p>
 
-          <p className="max-w-[460px] pb-8 text-center text-body-md tracking-[-0.16px] text-icon-70">
-            리포트가 생성되면 가입하신 이메일로 안내와 링크를 보내드립니다.{' '}
-            <br /> 마이페이지에서도 결과를 확인하실 수 있습니다.
+          <p className="max-w-115 pb-8 text-center text-body-md tracking-[-0.16px] text-icon-70">
+            Your report is ready. Take a look below.
           </p>
 
-          {/* TODO: 마이페이지(내 시험 현황) 라우트 생기면 교체(현재 /exams). */}
-          <ButtonPrimary width={200} as="link" href="/exams">
-            마이페이지로 이동
-          </ButtonPrimary>
+          {examResultId ? (
+            <ButtonPrimary
+              width={200}
+              as="link"
+              href={`/report/${examResultId}`}
+            >
+              View Report
+            </ButtonPrimary>
+          ) : (
+            <ButtonPrimary width={200} disabled>
+              Scoring...
+            </ButtonPrimary>
+          )}
         </div>
       </main>
     </div>

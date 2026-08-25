@@ -8,6 +8,7 @@ import IcEarGuide from '@/app/assets/icons/icon_ear_guide.svg';
 
 import { getErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
+import { getUserMedia } from '@/lib/utils/getUserMedia';
 
 import ErrorDisplay from '@/components/common/Display/ErrorDisplay';
 
@@ -81,26 +82,45 @@ export function EarCapture({
   const [errorMessage, setErrorMessage] = useState('');
   const [showDim, setShowDim] = useState(false);
   const blobsRef = useRef<{ right?: Blob; left?: Blob }>({});
+  // 캡처 1건당 감지 요청은 정확히 1회만 — StrictMode 이중 마운트 등으로 effect가
+  // 두 번 실행돼도 실제 API 호출이 중복 발사되지 않게 막는다(cancelled 플래그는
+  // state 갱신만 막을 뿐 이미 나간 요청 자체는 못 막는다).
+  const detectStartedRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    let cancelled = false;
 
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
+    getUserMedia({ video: true })
       .then((mediaStream) => {
-        stream = mediaStream;
-        if (videoRef.current) videoRef.current.srcObject = mediaStream;
+        if (cancelled) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = mediaStream;
         setPhase('aligning');
       })
       .catch(() => {
+        if (cancelled) return;
         setErrorMessage(
           '카메라를 사용할 수 없습니다. 카메라 권한을 확인해주세요.',
         );
         setPhase('error');
       });
 
-    return () => stream?.getTracks().forEach((track) => track.stop());
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
+
+  // phase==='idle'일 땐 return null이라 videoRef가 비어있다 — 스트림 획득 시점엔
+  // 아직 붙일 데가 없으므로, video가 실제로 마운트된 뒤(phase 변경 후) 여기서 붙인다.
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [phase]);
 
   // 정렬/재정렬 안내 진입 시 DIM_OVERLAY_MS 동안만 어둡게, 그 뒤 촬영 전까지는 원래대로.
   useEffect(() => {
@@ -166,6 +186,8 @@ export function EarCapture({
   // 양쪽 귀 blob으로 실제 이어폰 감지 → 착용됨(detected) / 미착용(notDetected) 분기.
   useEffect(() => {
     if (phase !== 'verifying') return;
+    if (detectStartedRef.current) return;
+    detectStartedRef.current = true;
 
     let cancelled = false;
     const run = async () => {
@@ -207,6 +229,7 @@ export function EarCapture({
 
     const timer = setTimeout(() => {
       blobsRef.current = {};
+      detectStartedRef.current = false;
       setSide('right');
       setPhase('aligning');
     }, DETECTED_RESET_MS);
@@ -222,6 +245,7 @@ export function EarCapture({
         message={errorMessage}
         onClick={() => {
           blobsRef.current = {};
+          detectStartedRef.current = false;
           setSide('right');
           setErrorMessage('');
           setPhase('aligning');

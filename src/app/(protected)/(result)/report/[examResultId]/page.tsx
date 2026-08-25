@@ -49,10 +49,11 @@ export default function ResultPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-14">
-      {/* 헤더: 등급 + 회차/응시자 */}
+      {/* 헤더: 등급 + 응시자/응시일 */}
       <header className="flex flex-col gap-2">
         <p className="text-body-sm text-icon-70">
-          {data.roundName} · {data.candidateName}
+          {data.candidateName} ·{' '}
+          {new Date(data.startedAt).toLocaleDateString('ko-KR')}
         </p>
         <div className="flex items-end gap-3">
           <span className="text-title-lg text-icon-90">{data.finalGrade}</span>

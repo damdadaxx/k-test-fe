@@ -5,7 +5,7 @@ import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
 import { useSessionStore } from '@/store/sessionStore';
 
-export function useIdentityVerify(examId: string) {
+export function useIdentityVerify(examSessionId: string) {
   // idCardPath는 identity → face-check 라우트 이동을 넘어 유지돼야 해서 스토어에 둔다.
   const idCardPath = useSessionStore((state) => state.idCardPath);
   const setIdCardPath = useSessionStore((state) => state.setIdCardPath);
@@ -16,11 +16,11 @@ export function useIdentityVerify(examId: string) {
   const uploadIdCard = useMutation({
     mutationFn: async (file: File) => {
       const { path, signedUrl } = await getIdCardUploadUrl(
-        examId,
+        examSessionId,
         'ID_CARD',
         file.type,
       );
-      await uploadToSignedUrl(signedUrl, file);
+      await uploadToSignedUrl(signedUrl, file, file.type);
       return path;
     },
     onSuccess: setIdCardPath,
@@ -31,14 +31,15 @@ export function useIdentityVerify(examId: string) {
       if (!idCardPath) {
         throw new Error('신분증을 먼저 업로드해주세요.');
       }
+      const faceContentType = faceBlob.type || 'image/jpeg';
       const { path: facePath, signedUrl } = await getIdCardUploadUrl(
-        examId,
+        examSessionId,
         'FACE',
-        faceBlob.type || 'image/jpeg',
+        faceContentType,
       );
-      await uploadToSignedUrl(signedUrl, faceBlob);
+      await uploadToSignedUrl(signedUrl, faceBlob, faceContentType);
       return verifyIdCard({
-        examId,
+        examSessionId,
         capturedAt: new Date().toISOString(),
         idCardPath,
         facePath,

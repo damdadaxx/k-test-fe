@@ -223,8 +223,8 @@ export default function SignupPage() {
     }
     signUp.mutate(
       { ...data, companyCode: data.companyCode || undefined },
-      // TODO: 바로 인증 절차 밟도록 하드 코딩 되어 있음. 추후 논의 후 "/exams"으로 수정
-      { onSuccess: () => router.push('/2/identity') },
+      // 가입 완료 후엔 랜딩으로. 응시는 랜딩의 "Take Test"로만 시작.
+      { onSuccess: () => router.replace('/') },
     );
   };
 

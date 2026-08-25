@@ -8,12 +8,16 @@ import ImgFacialVerification from '@/app/assets/images/img_facial_verification.s
 
 import { getErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
+import { getUserMedia } from '@/lib/utils/getUserMedia';
 
 import ErrorDisplay from '@/components/common/Display/ErrorDisplay';
 
 // 프레임에 얼굴이 맞춰졌다고 보고 자동 캡처하기까지의 시간.
 const ALIGN_DELAY_MS = 4000;
 const DIM_OVERLAY_MS = 2000;
+// 캡처 시점에 비디오 스트림이 아직 프레임을 못 내놓는 경우(초기화 지연) 재시도 간격/최대 시도 횟수.
+const CAPTURE_RETRY_MS = 300;
+const CAPTURE_MAX_RETRIES = 15; // 300ms * 15 ≈ 4.5초 더 기다림
 
 type Phase = 'idle' | 'aligning' | 'verifying' | 'complete' | 'error';
 
@@ -43,26 +47,45 @@ export function WebcamCapture({
   const [checkVisible, setCheckVisible] = useState(false);
   const [showDim, setShowDim] = useState(false);
   const faceBlobRef = useRef<Blob | null>(null);
+  // 캡처 1건당 대조 요청은 정확히 1회만 — StrictMode 이중 마운트 등으로 effect가
+  // 두 번 실행돼도 실제 API 호출이 중복 발사되지 않게 막는다(cancelled 플래그는
+  // state 갱신만 막을 뿐 이미 나간 요청 자체는 못 막는다).
+  const verifyStartedRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    let cancelled = false;
 
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
+    getUserMedia({ video: true })
       .then((mediaStream) => {
-        stream = mediaStream;
-        if (videoRef.current) videoRef.current.srcObject = mediaStream;
+        if (cancelled) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = mediaStream;
         setPhase('aligning');
       })
       .catch(() => {
+        if (cancelled) return;
         setErrorMessage(
           'Camera cannot be used. Please check camera permissions',
         );
         setPhase('error');
       });
 
-    return () => stream?.getTracks().forEach((track) => track.stop());
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
+
+  // phase==='idle'일 땐 <video>가 렌더 안 돼 videoRef가 비어있다 — 스트림 획득 시점엔
+  // 아직 붙일 데가 없으므로, video가 실제로 마운트된 뒤(phase 변경 후) 여기서 붙인다.
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [phase]);
 
   // aligning 진입 시 DIM_OVERLAY_MS 동안만 어둡게, 그 뒤 촬영 전까지는 원래대로.
   useEffect(() => {
@@ -80,7 +103,11 @@ export function WebcamCapture({
   useEffect(() => {
     if (phase !== 'aligning') return;
 
-    const timer = setTimeout(() => {
+    let retryTimer: ReturnType<typeof setTimeout>;
+
+    // video가 아직 프레임을 못 내놓는 상태(readyState 미달/videoWidth 0)면 캡처해도
+    // canvas가 0x0이 돼 blob이 null로 나온다 — 짧게 재시도해 초기화 지연을 흡수한다.
+    const attemptCapture = (retriesLeft: number) => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       if (!video || !canvas) {
@@ -88,6 +115,20 @@ export function WebcamCapture({
         setPhase('error');
         return;
       }
+
+      if (video.readyState < 2 || video.videoWidth === 0) {
+        if (retriesLeft <= 0) {
+          setErrorMessage('Failed to capture face. Please try again.');
+          setPhase('error');
+          return;
+        }
+        retryTimer = setTimeout(
+          () => attemptCapture(retriesLeft - 1),
+          CAPTURE_RETRY_MS,
+        );
+        return;
+      }
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d')?.drawImage(video, 0, 0);
@@ -96,14 +137,24 @@ export function WebcamCapture({
         faceBlobRef.current = blob;
         setPhase('verifying');
       }, 'image/jpeg');
-    }, ALIGN_DELAY_MS);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(
+      () => attemptCapture(CAPTURE_MAX_RETRIES),
+      ALIGN_DELAY_MS,
+    );
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(retryTimer);
+    };
   }, [phase]);
 
   // 캡처한 얼굴로 실제 대조 요청. matched면 complete, 아니면 error로 재촬영 유도.
   useEffect(() => {
     if (phase !== 'verifying') return;
+    if (verifyStartedRef.current) return;
+    verifyStartedRef.current = true;
 
     let cancelled = false;
     const run = async () => {
@@ -167,6 +218,7 @@ export function WebcamCapture({
         message={errorMessage}
         onClick={() => {
           faceBlobRef.current = null;
+          verifyStartedRef.current = false;
           setErrorMessage('');
           setPhase('aligning');
         }}
