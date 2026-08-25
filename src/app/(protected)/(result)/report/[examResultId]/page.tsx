@@ -26,6 +26,13 @@ const AREA_LABEL: Record<string, string> = {
   delivery: 'Delivery & Pronunciation',
 };
 
+// 영역별 점수 바 진하기(피그마 스펙 — 영역마다 톤이 다름).
+const AREA_SHADE: Record<string, string> = {
+  content_task: 'bg-icon-80',
+  language_use: 'bg-icon-70',
+  delivery: 'bg-icon-30',
+};
+
 // part → 섹션 카드 제목. SECTIONS(lib/exam/sections)와 같은 순서로 그룹핑해 번호를 매긴다.
 const PART_LABEL: Record<QuestionPart, string> = {
   SITUATION_DESCRIPTION: 'Speak About the Photo',
@@ -64,7 +71,10 @@ function DomainScoreRow({ domain }: { domain: ReportDomainScore }) {
           {filled} / {total}
         </p>
       </div>
-      <ScoreBar score={domain.score} />
+      <ScoreBar
+        score={domain.score}
+        filledClassName={AREA_SHADE[domain.area] ?? 'bg-icon-80'}
+      />
     </div>
   );
 }
