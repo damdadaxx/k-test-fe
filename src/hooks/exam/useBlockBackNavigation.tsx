@@ -10,7 +10,7 @@ import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import { ModalBase } from '@/components/common/Modal/ModalBase';
 
 const MESSAGE =
-  "시험 응시 중에는 페이지 이동이 불가능합니다. '다음' 또는 '건너뛰기' 버튼을 사용해 주세요.";
+  'You cannot navigate away from the page during the exam. Please use the "다음" or "건너뛰기" buttons.';
 
 // 개발용: true면 뒤로가기 차단을 끈다(개발 중 라우트 왕복 편의). 운영에선 false/비움.
 const BACK_BLOCK_DISABLED =
@@ -39,7 +39,7 @@ export function useBlockBackNavigation() {
         >
           <p className="text-body-lg text-primary">{MESSAGE}</p>
           <ButtonPrimary width={140} onClick={closeModal}>
-            확인
+            Confirm
           </ButtonPrimary>
         </ModalBase>,
       );

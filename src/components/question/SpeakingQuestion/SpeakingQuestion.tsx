@@ -146,8 +146,8 @@ export function SpeakingQuestion({
         >
           <p className="text-body-lg text-primary">
             {blocked
-              ? '마이크 권한이 브라우저에서 차단되어 있습니다. 주소창의 사이트 설정에서 마이크 권한을 허용으로 바꾼 뒤 새로고침해주세요.'
-              : '마이크 접근 권한이 필요합니다. 권한을 허용한 뒤 다시 시도해주세요.'}
+              ? 'Microphone permission is blocked by your browser. Please allow microphone access in your address bar settings and refresh the page.'
+              : 'Microphone access is required. Please allow permission and try again.'}
           </p>
           <ButtonPrimary
             width={140}
@@ -160,7 +160,7 @@ export function SpeakingQuestion({
                   }
             }
           >
-            {blocked ? '확인' : '다시 시도'}
+            {blocked ? 'Confirm' : 'Retry'}
           </ButtonPrimary>
         </ModalBase>,
       );
@@ -179,10 +179,10 @@ export function SpeakingQuestion({
         className="flex w-90 flex-col items-center gap-6 text-center"
       >
         <p className="text-body-lg text-primary">
-          {getErrorMessage(error, '답안 제출에 실패했습니다.')}
+          {getErrorMessage(error, 'Answer submission failed. Please retry.')}
         </p>
         <ButtonPrimary width={140} onClick={backToExams}>
-          확인
+          Confirm
         </ButtonPrimary>
       </ModalBase>,
     );
