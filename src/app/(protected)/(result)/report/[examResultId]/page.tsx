@@ -4,7 +4,6 @@ import { use } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
-import Link from 'next/link';
 
 import ImgLogo from '@/app/assets/images/img_logo.svg';
 
@@ -12,8 +11,9 @@ import type { QuestionPart, ReportDomainScore, ReportTask } from '@/types/exam';
 
 import { getReport } from '@/lib/api/result';
 import { SECTIONS } from '@/lib/exam/sections';
+import { cn } from '@/lib/utils/cn';
 
-import { MypageMenuButton } from '@/components/common/MypageMenuButton';
+import { PageHeader } from '@/components/common/PageHeader';
 import { GradeBadge } from '@/components/result/GradeBadge';
 import { ScoreBar } from '@/components/result/ScoreBar';
 import { TaskFeedbackCard } from '@/components/result/TaskFeedbackCard';
@@ -94,8 +94,8 @@ export default function ResultPage({
   if (isLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center gap-5 bg-page-bg">
-        <div className="h-20 w-full bg-white" />
-        <div className="flex w-full max-w-250 flex-col gap-4 px-6">
+        <PageHeader />
+        <div className="flex w-full max-w-250 flex-col gap-4 px-6 pt-20">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-40 w-full" />
@@ -117,17 +117,16 @@ export default function ResultPage({
   const sectioned = withSectionLabels(data.tasks);
 
   return (
-    <main className="flex min-h-screen flex-col items-center gap-5 bg-page-bg">
-      {/* 페이지 상단 헤더 */}
-      <header className="flex w-full items-center justify-between border-b border-neutral-30 bg-white px-30 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
-        </Link>
-        <MypageMenuButton />
-      </header>
+    <main
+      className={cn(
+        'flex min-h-screen flex-col items-center gap-5 bg-page-bg px-6',
+        'tablet:px-0',
+      )}
+    >
+      <PageHeader />
 
-      {/* 증명서 형태 리포트 카드 */}
-      <div className="flex w-full max-w-250 flex-col gap-8 rounded-16 bg-white px-16 py-14">
+      {/* 증명서 형태 리포트 카드 — 고정 헤더 높이(h-20)만큼 상단 여백 */}
+      <div className="mt-25 mb-25 flex w-full max-w-250 flex-col gap-8 rounded-16 bg-white px-16 py-14">
         <div className="flex w-full items-center justify-between">
           <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
           <p className="text-body-sm text-icon-90">OFFICIAL REPORT</p>

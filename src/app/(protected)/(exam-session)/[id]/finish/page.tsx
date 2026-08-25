@@ -4,15 +4,13 @@ import { use, useEffect, useRef } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
-import Link from 'next/link';
 
 import IcCheckedCircleLg from '@/app/assets/icons/icon_check_green_lg.svg';
-import ImgLogo from '@/app/assets/images/img_logo.svg';
 
 import { getMyExams } from '@/lib/api/exam';
 
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
-import { MypageMenuButton } from '@/components/common/MypageMenuButton';
+import { PageHeader } from '@/components/common/PageHeader';
 
 // 채점은 보통 즉시 끝나지만 혹시 지연될 수 있어 examResultId가 나올 때까지 짧게 폴링.
 // 최대 대기 후에도 안 나오면 폴링만 멈추고(계속 "View Report" 비활성) 새로고침으로 재확인.
@@ -48,22 +46,9 @@ export default function FinishPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-page-bg">
-      <header className="border-b border-neutral-30 bg-white">
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src={ImgLogo}
-              width={112}
-              height={24}
-              alt="K-TEST Logo Image"
-            />
-          </Link>
+      <PageHeader />
 
-          <MypageMenuButton />
-        </div>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-6 py-14">
+      <main className="flex flex-1 items-center justify-center px-6 pt-20 pb-14">
         {/* Success Card (Figma node 40000645:22475) */}
         <div className="flex w-[680px] max-w-full flex-col items-center rounded-[24px] bg-white p-12 drop-shadow-[0px_8px_12px_rgba(0,0,0,0.03)]">
           {/* 성공 아이콘 배지 */}

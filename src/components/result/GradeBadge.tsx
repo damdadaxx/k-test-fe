@@ -31,7 +31,10 @@ export function GradeBadge({
           fill={GRADE_COLOR[grade]}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[32px] font-bold text-white">
+      <span
+        className="absolute inset-0 flex items-center justify-center font-bold text-white"
+        style={{ fontSize: size * 0.32 }}
+      >
         {grade}
       </span>
     </div>
