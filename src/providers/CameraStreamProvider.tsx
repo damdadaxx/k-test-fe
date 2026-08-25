@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { PROCTOR_DISABLED } from '@/lib/proctor/config';
+import { getUserMedia } from '@/lib/utils/getUserMedia';
 
 // 시험 화면(testing)에서 카메라 스트림을 한 번만 취득해 공유한다.
 // 셀프뷰(ExamSessionHeader/WebcamMonitor)와 프레임 분석(proctor/WebcamMonitor)이
@@ -25,8 +26,7 @@ export function CameraStreamProvider({
     let cancelled = false;
     let acquired: MediaStream | null = null;
 
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
+    getUserMedia({ video: true })
       .then((ms) => {
         if (cancelled) {
           ms.getTracks().forEach((t) => t.stop());

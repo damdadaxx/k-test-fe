@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
 import { getErrorMessage } from '@/lib/api/client';
@@ -12,7 +13,6 @@ import { useAuthToken } from '@/hooks/auth/useAuthToken';
 import { useCurrentSession, useStartExamSession } from '@/hooks/exam/useExams';
 
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
-import ButtonSecondary from '@/components/common/Button/ButtonSecondary';
 import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { ModalLogin } from '@/components/common/Modal/ModalLogin';
 
@@ -30,6 +30,11 @@ export function TakeTestButton() {
     Boolean(token),
   );
   const startSession = useStartExamSession();
+  const queryClient = useQueryClient();
+  // POST /exam-sessions 직후엔 세션 상태가 바로 바뀔 수 있어서(새로 생성/BLOCKED 전환 등)
+  // 캐시된 current-session을 다음 클릭 전에 반드시 최신화해둔다(기본 staleTime 60초라 방치하면 stale).
+  const invalidateCurrentSession = () =>
+    queryClient.invalidateQueries({ queryKey: ['current-session'] });
 
   const showErrorModal = (message: string) => {
     openModal(
@@ -60,6 +65,7 @@ export function TakeTestButton() {
           getErrorMessage(error, 'This test is currently unavailable.'),
         );
       },
+      onSettled: invalidateCurrentSession,
     });
   };
 
@@ -89,6 +95,7 @@ export function TakeTestButton() {
           getErrorMessage(error, 'This test is currently unavailable.'),
         );
       },
+      onSettled: invalidateCurrentSession,
     });
   };
 
@@ -110,7 +117,9 @@ export function TakeTestButton() {
             You can apply for a new test after finishing your current test.
           </p>
           <div className="flex w-full gap-3">
-            <ButtonSecondary onClick={closeModal}>Cancel</ButtonSecondary>
+            <ButtonPrimary variant="line" onClick={closeModal}>
+              Cancel
+            </ButtonPrimary>
             <ButtonPrimary onClick={resumeSession}>Resume Test</ButtonPrimary>
           </div>
         </ModalBase>,

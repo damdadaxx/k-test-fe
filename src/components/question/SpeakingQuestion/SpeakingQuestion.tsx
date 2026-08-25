@@ -11,6 +11,7 @@ import type { SpeakingQuestionData } from '@/types/exam';
 
 import { getErrorMessage } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
+import { getUserMedia } from '@/lib/utils/getUserMedia';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -112,7 +113,7 @@ export function SpeakingQuestion({
     if (startedRef.current) return;
     startedRef.current = true;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
       const recorder = new MediaRecorder(stream);

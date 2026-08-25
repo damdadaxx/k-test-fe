@@ -4,7 +4,6 @@ import img_landing from '@/app/assets/images/img_landing.svg';
 
 import { cn } from '@/lib/utils/cn';
 
-import { CheckListItem } from './CheckListItem';
 import { TakeTestButton } from './TakeTestButton';
 
 export function HeroSection() {
@@ -37,19 +36,6 @@ export function HeroSection() {
               Certify your Korean proficiency <br />
               anywhere, anytime
             </h1>
-            <ul
-              className={cn(
-                'flex flex-col gap-2 items-center',
-                'desktop:items-start',
-              )}
-            >
-              <CheckListItem>
-                Take the test online. No appointment needed.
-              </CheckListItem>
-              <CheckListItem>
-                Get your results within 48 hours after the test.
-              </CheckListItem>
-            </ul>
             <TakeTestButton />
           </div>
 

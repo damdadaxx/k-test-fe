@@ -9,6 +9,7 @@ import { calibrateGaze } from '@/lib/api/identity';
 import { SECTIONS } from '@/lib/exam/sections';
 import { PROCTOR_DISABLED } from '@/lib/proctor/config';
 import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
+import { getUserMedia } from '@/lib/utils/getUserMedia';
 
 import { useModal } from '@/providers/ModalProvider';
 
@@ -114,9 +115,7 @@ export default function ReadyPage({
 
     const requestCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
+        const stream = await getUserMedia({ video: true });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
