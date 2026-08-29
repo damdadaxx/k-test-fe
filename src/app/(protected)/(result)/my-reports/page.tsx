@@ -2,11 +2,15 @@
 
 import type { MyExamItem } from '@/types/exam';
 
+import { isChromiumBrowser } from '@/lib/utils/browserSupport';
 import { cn } from '@/lib/utils/cn';
 
-import { useMyExams } from '@/hooks/exam/useExams';
+import { useModal } from '@/providers/ModalProvider';
+
+import { useMyExams, useResumeExamSession } from '@/hooks/exam/useExams';
 
 import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
+import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { PageHeader } from '@/components/common/PageHeader';
 import { GradeBadge } from '@/components/result/GradeBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -36,11 +40,55 @@ function GradeCell({ item }: { item: MyExamItem }) {
   return null;
 }
 
-// Report 칸: 리포트 준비되면 View Report, 진행중이면 Resume Test(재개는 홈의
-// TakeTestButton이 처리), 제출됐지만 채점 전이면 Scoring... 비활성, 실격이면 View Detail
-// (채점 자체가 없어 examResultId는 영구 null이라 대신 violations 상세로), 그 외(차단/만료)엔
-// 실제로 볼 게 없어서 비움.
+// Report 칸: 리포트 준비되면 View Report, 진행중이면 Resume Test(useResumeExamSession으로
+// 여기서 바로 재개 — 랜딩 경유 안 함), 제출됐지만 채점 전이면 Scoring... 비활성, 실격이면
+// View Detail(채점 자체가 없어 examResultId는 영구 null이라 대신 violations 상세로),
+// 그 외(차단/만료)엔 실제로 볼 게 없어서 비움.
 function ReportCell({ item }: { item: MyExamItem }) {
+  const { openModal, closeModal } = useModal();
+  const { resume, isPending } = useResumeExamSession();
+
+  // 랜딩 TakeTestButton과 동일한 이유(듀얼모니터 감지가 Chromium 전용 API 의존)로
+  // 재개도 Chromium 계열에서만 허용.
+  const handleResume = () => {
+    if (!isChromiumBrowser()) {
+      openModal(
+        <ModalBase
+          onClose={closeModal}
+          className="flex w-149.5 max-w-full flex-col items-center gap-7 text-center"
+        >
+          <p className="text-title-lg tracking-[-0.64px] text-icon-90">
+            Unsupported Browser
+          </p>
+          <p className="text-body-md text-icon-90">
+            This test only works on{' '}
+            <span className="font-bold">
+              Chrome, Edge, Brave, Opera, or Vivaldi.
+            </span>{' '}
+            Please switch to one of these browsers to continue.
+          </p>
+          <ButtonPrimary width={180} onClick={closeModal}>
+            Back
+          </ButtonPrimary>
+        </ModalBase>,
+      );
+      return;
+    }
+    resume((message) => {
+      openModal(
+        <ModalBase
+          onClose={closeModal}
+          className="flex w-90 flex-col items-center gap-6 text-center"
+        >
+          <p className="text-body-lg text-primary">{message}</p>
+          <ButtonPrimary width={140} onClick={closeModal}>
+            Confirm
+          </ButtonPrimary>
+        </ModalBase>,
+      );
+    });
+  };
+
   if (item.examResultId) {
     return (
       <ButtonPrimary
@@ -56,8 +104,13 @@ function ReportCell({ item }: { item: MyExamItem }) {
   }
   if (item.sessionStatus === 'INPROGRESS') {
     return (
-      <ButtonPrimary size="sm" width={140} as="link" href="/">
-        Resume Test
+      <ButtonPrimary
+        size="sm"
+        width={140}
+        onClick={handleResume}
+        disabled={isPending}
+      >
+        {isPending ? 'Resuming...' : 'Resume Test'}
       </ButtonPrimary>
     );
   }
