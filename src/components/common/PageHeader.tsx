@@ -76,7 +76,7 @@ export function PageHeader({
             </ButtonPrimary>
             {pathname !== '/signup' && (
               <ButtonPrimary href="/signup" as="link" size="sm" width={140}>
-                Sing Up
+                Sign Up
               </ButtonPrimary>
             )}
           </nav>
