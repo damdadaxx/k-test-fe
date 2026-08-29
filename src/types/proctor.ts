@@ -35,4 +35,9 @@ export interface AnalyzeResponse {
   createClip: boolean;
   eventCount: number;
   recordedEvents: AnalyzeRecordedEvent[];
+  // (신규 2026-08-29) runIdentityCheck:true로 요청했는데 identityCheckExecuted가 false로
+  // 오면 얼굴이 0명/여러 명이라 동일인 검사가 실제로는 실행 안 된 것 — 다음 프레임에도
+  // runIdentityCheck:true로 재시도해야 함(WebcamMonitor 참고).
+  identityCheckRequested: boolean;
+  identityCheckExecuted: boolean;
 }
