@@ -33,7 +33,7 @@ export function ModalBase({ onClose, children, className }: ModalBaseProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6"
       onClick={handleBackdropClick}
     >
       <div className={cn('rounded-xl bg-white p-(--space-32)', className)}>
