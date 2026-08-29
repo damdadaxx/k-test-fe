@@ -27,7 +27,16 @@ type Phase =
   | 'verifying'
   | 'detected'
   | 'notDetected'
+  | 'incomplete'
   | 'error';
+
+// EarCapture가 필요로 하는 감지 결과 필드만. inspectionComplete:false면 자세 문제로
+// 판정 자체가 불완전해 earphoneDetected를 신뢰할 수 없다(정면 응시 등으로 귀가 안 보이는 경우).
+export type EarDetectionOutcome = {
+  earphoneDetected: boolean;
+  inspectionComplete: boolean;
+  message: string;
+};
 
 function StatusPill({ children }: { children: React.ReactNode }) {
   return (
@@ -64,11 +73,14 @@ function TurnHeadGuide() {
   );
 }
 
-// onDetect: 양쪽 귀 blob을 넘겨 이어폰 감지를 수행하고 earphoneDetected 여부를 돌려준다.
+// onDetect: 양쪽 귀 blob을 넘겨 이어폰 감지를 수행하고 판정 결과를 돌려준다.
 export function EarCapture({
   onDetect,
 }: {
-  onDetect: (leftEarImage: Blob, rightEarImage: Blob) => Promise<boolean>;
+  onDetect: (
+    leftEarImage: Blob,
+    rightEarImage: Blob,
+  ) => Promise<EarDetectionOutcome>;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -202,9 +214,16 @@ export function EarCapture({
         return;
       }
       try {
-        const detected = await onDetectRef.current(left, right);
+        const result = await onDetectRef.current(left, right);
         if (cancelled) return;
-        setPhase(detected ? 'detected' : 'notDetected');
+        // 자세 문제로 판정 자체가 불완전(정면 응시 등) — earphoneDetected를 못 믿으므로
+        // 통과/착용 어느 쪽으로도 판단하지 않고 서버 안내 문구를 보여준 뒤 재촬영시킨다.
+        if (!result.inspectionComplete) {
+          setErrorMessage(result.message);
+          setPhase('incomplete');
+          return;
+        }
+        setPhase(result.earphoneDetected ? 'detected' : 'notDetected');
       } catch (error) {
         if (cancelled) return;
         setErrorMessage(
@@ -223,14 +242,16 @@ export function EarCapture({
     };
   }, [phase]);
 
-  // 이어폰 착용 감지 → 안내 후 스캔 처음(오른쪽 귀)으로 리셋해 재촬영 유도.
+  // 이어폰 착용 감지 또는 판정 불완전(자세 문제) → 안내 후 스캔 처음(오른쪽 귀)으로
+  // 리셋해 재촬영 유도.
   useEffect(() => {
-    if (phase !== 'detected') return;
+    if (phase !== 'detected' && phase !== 'incomplete') return;
 
     const timer = setTimeout(() => {
       blobsRef.current = {};
       detectStartedRef.current = false;
       setSide('right');
+      setErrorMessage('');
       setPhase('aligning');
     }, DETECTED_RESET_MS);
 
@@ -265,6 +286,7 @@ export function EarCapture({
         {phase === 'verifying' && 'Verifying...'}
         {phase === 'detected' && 'Earphones detected'}
         {phase === 'notDetected' && 'No earphones detected'}
+        {phase === 'incomplete' && errorMessage}
       </StatusPill>
 
       <div className="relative size-82 overflow-hidden rounded-2xl border-4 border-icon-90">
@@ -297,7 +319,7 @@ export function EarCapture({
             <span className="absolute inset-0 animate-ping rounded-full border-2 border-success" />
           </span>
         )}
-        {phase === 'detected' && (
+        {(phase === 'detected' || phase === 'incomplete') && (
           <span className="absolute left-1/2 top-1/2 flex size-23 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-error">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
               <path
