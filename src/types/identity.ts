@@ -28,10 +28,18 @@ export interface DetectEarphoneRequest {
   rightEarImage: Blob;
 }
 
+// (신규 2026-08-29) inspectionComplete:false면 정면을 보고 있어 귀가 안 보이는 등
+// 자세 문제로 판정 자체가 불완전한 것 — 이때 earphoneDetected 값은 신뢰하면 안 됨.
 export interface EarphoneDetectResponse {
   earphoneDetected: boolean;
   leftEarDetected: boolean;
   rightEarDetected: boolean;
+  inspectionComplete: boolean;
+  leftEarVisible: boolean;
+  rightEarVisible: boolean;
+  leftYaw: number;
+  rightYaw: number;
+  yawThreshold: number;
   message: string;
 }
 

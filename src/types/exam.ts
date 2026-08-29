@@ -32,10 +32,17 @@ export interface ReportTask {
   response: string | null; // STT 전사, 스킵이면 null
   requiredPoints: ReportRequiredPoint[] | null; // 스킵이면 null
 }
+// 실제 swagger(ReportViolationResponseDto)는 종류별 집계가 아니라 위반 건별 상세 —
+// 화면에 필요한 "종류별 횟수"는 프런트가 eventType으로 묶어서 직접 계산한다.
 export interface ReportViolation {
-  eventType: string; // 브라우저 + AI 감지 혼재
+  id: string;
+  eventType: string; // 브라우저 감지(TAB_SWITCH 등) + AI 웹캠 분석(FACE_OUT_OF_FRAME 등) 혼재
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
-  count: number;
+  meta: Record<string, unknown>;
+  createdAt: string;
+  snapshotPath: string | null;
+  clipPath: string | null;
+  sessionStatus: SessionStatus;
 }
 export interface ExamReport {
   examResultId: string;
@@ -46,6 +53,15 @@ export interface ExamReport {
   percentile: number; // 참고용(임시 환산표)
   domainScores: ReportDomainScore[];
   tasks: ReportTask[];
+  violations: ReportViolation[];
+}
+
+// GET /mypage/violations/:examSessionId — 실격(DISQUALIFIED) 세션 전용. 채점이 없어
+// 등급/영역점수/문항 없이 위반 내역만. 실격 아닌 세션에 호출하면 409.
+export interface ViolationSummary {
+  examSessionId: string;
+  candidateName: string;
+  startedAt: string;
   violations: ReportViolation[];
 }
 

@@ -1,4 +1,4 @@
-import type { ExamReport } from '@/types/exam';
+import type { ExamReport, ViolationSummary } from '@/types/exam';
 
 import { apiClient } from './client';
 
@@ -6,4 +6,10 @@ import { apiClient } from './client';
 export const getReport = (examResultId: string) =>
   apiClient
     .get<ExamReport>(`/mypage/report/${examResultId}`)
+    .then((res) => res.data);
+
+// 실격(DISQUALIFIED) 세션의 부정행위 사유 조회. 실격 아닌 세션에 호출하면 409.
+export const getViolationSummary = (examSessionId: string) =>
+  apiClient
+    .get<ViolationSummary>(`/mypage/violations/${examSessionId}`)
     .then((res) => res.data);

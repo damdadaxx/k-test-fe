@@ -1,10 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
+import { getErrorMessage } from '@/lib/api/client';
 import {
   getCurrentSession,
   getMyExams,
+  getSessionQuestions,
   startExamSession,
 } from '@/lib/api/exam';
+import { SECTIONS, getResumeQuestion } from '@/lib/exam/sections';
 
 import { useSessionStore } from '@/store/sessionStore';
 
@@ -33,4 +37,43 @@ export function useStartExamSession() {
     mutationFn: () => startExamSession(),
     onSuccess: (data) => setSessionId(data.examSessionId),
   });
+}
+
+// 진행중 세션 "이어서 풀기" — POST /exam-sessions 재호출(재접속 남용 카운트가 이걸로만
+// 세워지므로 GET current의 examSessionId로 직접 이동하면 안 됨) 후 verified 분기·재개
+// 지점 계산까지 한 번에 처리. my-reports("Resume Test")·랜딩(TakeTestButton) 등
+// "이미 진행중인 세션을 이어서 풀기"가 필요한 곳에서 공용으로 쓴다.
+// (TakeTestButton은 새 세션 시작과 pending 상태를 공유해야 해서 기존 구현을 그대로 둠 —
+// 여기는 새 호출부(my-reports)를 위한 것.)
+export function useResumeExamSession() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const startSession = useStartExamSession();
+
+  const resume = (onError?: (message: string) => void) => {
+    if (startSession.isPending) return;
+    startSession.mutate(undefined, {
+      onSuccess: async (data) => {
+        if (!data.verified) {
+          router.push(`/${data.examSessionId}/identity`);
+          return;
+        }
+        const questions = await getSessionQuestions(data.examSessionId);
+        const target = getResumeQuestion(questions);
+        router.push(
+          target
+            ? `/${data.examSessionId}/testing/${target.moduleId}/${target.questionId}`
+            : `/${data.examSessionId}/testing/${SECTIONS[0].moduleId}/intro`,
+        );
+      },
+      onError: (error) =>
+        onError?.(
+          getErrorMessage(error, 'This test is currently unavailable.'),
+        ),
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ['current-session'] }),
+    });
+  };
+
+  return { resume, isPending: startSession.isPending };
 }
