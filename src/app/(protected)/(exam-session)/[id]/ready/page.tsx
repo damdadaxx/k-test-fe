@@ -39,6 +39,8 @@ export default function ReadyPage({
   const startedRef = useRef(false);
   // null = 점 응시 단계, 숫자 = 카운트다운 남은 초.
   const [count, setCount] = useState<number | null>(null);
+  // 캘리브레이션 실패 후 재시도할 때마다 증가 — 점 응시부터 다시 시작시키는 트리거.
+  const [cycleKey, setCycleKey] = useState(0);
 
   // 시선 캘리브레이션용: 카운트다운 동안 캡처한 중앙 응시 이미지들.
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -74,18 +76,61 @@ export default function ReadyPage({
     );
   };
 
+  // (신규 2026-08-29) 시선 캘리브레이션 실패 안내 → 재시도 시 점 응시부터 다시.
+  const showCalibrationFailedModal = () => {
+    const retry = async () => {
+      closeModal();
+      calibrationImagesRef.current = [];
+      startedRef.current = false;
+      // 카메라 권한 거부 등으로 스트림이 아직 없으면 재시도 클릭(유저 제스처)에 맞춰 재요청.
+      if (!streamRef.current) {
+        try {
+          const stream = await getUserMedia({ video: true });
+          streamRef.current = stream;
+          if (videoRef.current) videoRef.current.srcObject = stream;
+        } catch {
+          // 여전히 거부됨 — 캡처 이미지 0장으로 다음 시도도 바로 실패하고 이 모달이 다시 뜬다.
+        }
+      }
+      setCount(null);
+      setCycleKey((k) => k + 1);
+    };
+    openModal(
+      <ModalBase
+        onClose={retry}
+        className="flex w-90 flex-col items-center gap-6 text-center"
+      >
+        {/* 시선 캘리브레이션에 실패했습니다. 다시 시도해주세요. */}
+        <p className="text-body-lg text-primary">
+          Gaze calibration failed. <br />
+          Please try again.
+        </p>
+        <ButtonPrimary width={140} onClick={retry}>
+          Retry
+        </ButtonPrimary>
+      </ModalBase>,
+    );
+  };
+
   // 카운트다운이 끝나면(0) 시선 캘리브레이션 → verified 확인 → 시험 진입.
   const enterTestOnce = async () => {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    // 시선 캘리브레이션(선택 기능): 캡처한 이미지가 있으면 전송. 실패해도 시험은 진행(best-effort).
+    // (신규) 시선 캘리브레이션이 본인인증·이어폰 확인과 동급의 필수 게이트 — 안 해두면
+    // verified가 true로 안 바뀌므로, 실패 시 진행시키지 않고 재시도시킨다(과거엔 best-effort로
+    // 실패를 삼키고 진행했음).
     const images = calibrationImagesRef.current;
-    if (!PROCTOR_DISABLED && images.length > 0) {
+    if (!PROCTOR_DISABLED) {
+      if (images.length === 0) {
+        showCalibrationFailedModal();
+        return;
+      }
       try {
         await calibrateGaze(sessionId, images);
       } catch {
-        // 캘리브레이션 실패는 시선 판정 정확도만 낮출 뿐 시험 진입을 막지 않는다.
+        showCalibrationFailedModal();
+        return;
       }
     }
 
@@ -126,7 +171,8 @@ export default function ReadyPage({
         if (videoRef.current) videoRef.current.srcObject = stream;
       } catch {
         if (cancelled) return;
-        // 요청은 1회만. 거부/실패 시 안내만 하고 시험은 그대로 진행(캘리브레이션은 best-effort).
+        // 카메라 없이는 캘리브레이션 이미지를 못 찍어 뒤에서 실패 처리(재시도 모달)로 이어진다.
+        // 여기선 권한이 왜 필요한지 먼저 안내만 한다(1회).
         openModal(
           <ModalBase
             onClose={closeModal}
@@ -157,13 +203,14 @@ export default function ReadyPage({
   }, [openModal, closeModal]);
 
   // 점 응시 화면을 DOT_SECONDS 동안 보여준 뒤 카운트다운 시작.
+  // cycleKey가 바뀌면(캘리브레이션 실패 후 재시도) 점 응시부터 다시 시작한다.
   useEffect(() => {
     const timer = setTimeout(
       () => setCount(COUNTDOWN_START),
       DOT_SECONDS * 1000,
     );
     return () => clearTimeout(timer);
-  }, []);
+  }, [cycleKey]);
 
   // 카운트다운: 1초마다 감소하며 중앙 응시 프레임 캡처, 0에 닿으면 캘리브레이션+시험 진입.
   useEffect(() => {

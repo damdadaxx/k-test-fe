@@ -44,6 +44,9 @@ export function WebcamMonitor({
   const fastUntilRef = useRef(0);
   // 클립은 한 번에 하나만 녹화(중복 createClip 시 새 이벤트는 건너뜀).
   const clipBusyRef = useRef(false);
+  // identityCheckRequested:true인데 identityCheckExecuted:false로 오면(얼굴 0명/여러 명)
+  // 동일인 검사가 실제로는 안 된 것 — 다음 프레임에 바로 재시도(6프레임 주기 기다리지 않음).
+  const retryIdentityCheckRef = useRef(false);
 
   useEffect(() => {
     if (PROCTOR_DISABLED || !stream) return;
@@ -132,12 +135,16 @@ export function WebcamMonitor({
         if (frame) {
           sequenceRef.current += 1;
           const seq = sequenceRef.current;
+          const runIdentityCheck =
+            retryIdentityCheckRef.current || seq % IDENTITY_CHECK_EVERY === 1;
           const res = await analyzeFrame(examSessionId, frame, {
             capturedAt: new Date().toISOString(),
             elapsedMs: Date.now() - startedAtRef.current,
             captureSequence: seq,
-            runIdentityCheck: seq % IDENTITY_CHECK_EVERY === 1,
+            runIdentityCheck,
           });
+          retryIdentityCheckRef.current =
+            res.identityCheckRequested && !res.identityCheckExecuted;
 
           // 위반 감지되면 잠시 가속.
           if (res.severity !== 'NORMAL') {
