@@ -37,9 +37,9 @@ function GradeCell({ item }: { item: MyExamItem }) {
 }
 
 // Report 칸: 리포트 준비되면 View Report, 진행중이면 Resume Test(재개는 홈의
-// TakeTestButton이 처리), 제출됐지만 채점 전이면 Scoring... 비활성, 그 외(실격/차단/만료)엔
-// 실제로 볼 게 없어서 비움 — 피그마 목업은 실격 행에도 View Report가 있지만, 실격 세션은
-// 채점 자체가 안 돼(examResultId 영구 null) 실제로는 버튼 뺌.
+// TakeTestButton이 처리), 제출됐지만 채점 전이면 Scoring... 비활성, 실격이면 View Detail
+// (채점 자체가 없어 examResultId는 영구 null이라 대신 violations 상세로), 그 외(차단/만료)엔
+// 실제로 볼 게 없어서 비움.
 function ReportCell({ item }: { item: MyExamItem }) {
   if (item.examResultId) {
     return (
@@ -65,6 +65,19 @@ function ReportCell({ item }: { item: MyExamItem }) {
     return (
       <ButtonPrimary variant="line" size="sm" width={140} disabled>
         Scoring...
+      </ButtonPrimary>
+    );
+  }
+  if (item.sessionStatus === 'DISQUALIFIED') {
+    return (
+      <ButtonPrimary
+        variant="line"
+        size="sm"
+        width={140}
+        as="link"
+        href={`/violations/${item.examSessionId}`}
+      >
+        View Detail
       </ButtonPrimary>
     );
   }
