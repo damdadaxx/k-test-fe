@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -73,6 +73,16 @@ export default function TestingQuestionPage({
   const { id: sessionId, moduleId, questionId } = use(params);
   const router = useRouter();
   const { canAccess } = useExamSessionGuard(sessionId);
+  // 건너뛰기 요청 진행 중 재클릭 방지 — 가드 없이는 더블클릭 시 같은 문항에 skip이
+  // 두 번 나가 두 번째가 409(이미 처리됨)로 실패하고, 마지막 문항이면 그 실패 때문에
+  // finalize가 걸려 세션이 계속 INPROGRESS로 남는 문제가 있었다. 문항이 바뀌면 새
+  // 문항이니 렌더 중에 리셋(React 권장 패턴 — effect 안에서 setState 금지).
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [skipResetKey, setSkipResetKey] = useState(questionId);
+  if (skipResetKey !== questionId) {
+    setSkipResetKey(questionId);
+    setIsSkipping(false);
+  }
 
   const { data: rawQuestions } = useQuery({
     queryKey: ['session-questions', sessionId],
@@ -99,7 +109,9 @@ export default function TestingQuestionPage({
   }
 
   const question = toQuestion(rawQuestion, moduleId, currentIndex + 1);
-  // 다음 문항도, 다음 섹션도 없으면 마지막 문항(section3 끝) → 버튼을 "제출"로.
+  // 다음 문항도, 다음 섹션도 없으면 마지막 문항(section3 끝) → 버튼을 "제출"로 표시.
+  // (동작 자체는 여전히 skip 호출 — 실제 답안 제출은 SpeakingQuestion 녹음이 담당.
+  // "제출"이라는 라벨은 이걸 눌러 시험을 끝낸다는 의미로만 쓴다.)
   const isLastQuestion = !nextRawQuestion && !getNextSection(moduleId);
 
   // 다음 문항/섹션/결과로 이동만. 뒤로가기 복귀 방지 위해 replace(history 미적재).
@@ -117,9 +129,13 @@ export default function TestingQuestionPage({
     }
   };
 
-  // "건너뛰기/제출" 버튼: 답안 대신 skip 호출(마지막 문항이면 서버가 자동 finalize) 후 이동.
+  // "건너뛰기" 버튼: 답안 대신 skip 호출(마지막 문항이면 서버가 자동 finalize) 후 이동.
   // 실패(이미 답안 저장 409/종료된 세션 등)해도 이동은 진행 — 다음 화면 가드가 처리.
+  // isSkipping 가드: 없으면 더블클릭 시 같은 문항에 skip이 두 번 나가 하나는 반드시
+  // 409로 실패한다(이미 처리된 문항/세션).
   const handleSkip = async () => {
+    if (isSkipping) return;
+    setIsSkipping(true);
     try {
       await skipQuestion(sessionId, questionId);
     } catch {
@@ -141,10 +157,12 @@ export default function TestingQuestionPage({
         onSubmitted={goNext}
       />
 
-      {/* 건너뛰기/제출 버튼: 답안 대신 skip 호출 후 이동. 마지막 문항은 "제출"로 표시. */}
+      {/* 건너뛰기/제출 버튼: 동작은 항상 skip 호출 후 이동. 마지막 문항만 "제출"로 표시
+          (이 버튼으로 시험을 끝낸다는 의미) — 실제 답안 제출은 SpeakingQuestion 녹음이 담당. */}
       <NextStepButton
         onClick={() => void handleSkip()}
         label={isLastQuestion ? '제출' : '건너뛰기'}
+        disabled={isSkipping}
       />
     </div>
   );

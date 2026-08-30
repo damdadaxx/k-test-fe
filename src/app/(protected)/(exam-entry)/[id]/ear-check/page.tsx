@@ -9,7 +9,10 @@ import { useEarDetection } from '@/hooks/identity/useEarDetection';
 import { useSessionStore } from '@/store/sessionStore';
 
 import { NextStepButton } from '@/components/common/Footer/NextStepButton';
-import { EarCapture } from '@/components/identity/EarCapture';
+import {
+  EarCapture,
+  type EarDetectionOutcome,
+} from '@/components/identity/EarCapture';
 import StepHeader from '@/components/identity/StepHeader';
 
 // ponytail: 백엔드 이어폰탐지 vendor 다운 시 개발용 우회. .env NEXT_PUBLIC_SKIP_EAR_DETECT=true.
@@ -29,18 +32,18 @@ export default function EarCheckPage({
     (state) => state.setEarCheckVerified,
   );
 
-  // 양쪽 귀 blob → earphone/detect. earphoneDetected면 EarCapture가 재촬영으로 되돌린다.
-  // 미착용이면 훅 onSuccess가 earCheckVerified=true로 세워 Next를 연다.
-  const handleDetect = async (leftEarImage: Blob, rightEarImage: Blob) => {
+  // 양쪽 귀 blob → earphone/detect. earphoneDetected거나 inspectionComplete:false(자세
+  // 문제로 판정 불완전)면 EarCapture가 재촬영으로 되돌린다. 통과(둘 다 만족)면 훅
+  // onSuccess가 earCheckVerified=true로 세워 Next를 연다.
+  const handleDetect = async (
+    leftEarImage: Blob,
+    rightEarImage: Blob,
+  ): Promise<EarDetectionOutcome> => {
     if (SKIP_EAR_DETECT) {
       setEarCheckVerified(true);
-      return false;
+      return { earphoneDetected: false, inspectionComplete: true, message: '' };
     }
-    const result = await earDetection.mutateAsync({
-      leftEarImage,
-      rightEarImage,
-    });
-    return result.earphoneDetected;
+    return earDetection.mutateAsync({ leftEarImage, rightEarImage });
   };
 
   // 본인인증 완료 → 준비 화면으로. 세션은 랜딩(Take Test)에서 이미 생성됨 —

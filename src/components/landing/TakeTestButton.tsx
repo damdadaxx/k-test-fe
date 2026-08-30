@@ -113,11 +113,20 @@ export function TakeTestButton() {
 
         const questions = await getSessionQuestions(data.examSessionId);
         const target = getResumeQuestion(questions);
-        router.push(
-          target
-            ? `/${data.examSessionId}/testing/${target.moduleId}/${target.questionId}`
-            : `/${data.examSessionId}/testing/${SECTIONS[0].moduleId}/intro`,
-        );
+        if (target) {
+          router.push(
+            `/${data.examSessionId}/testing/${target.moduleId}/${target.questionId}`,
+          );
+        } else if (questions.length > 0) {
+          // 문항이 전부 답변/스킵됐는데(정상이면 마지막 처리 때 자동 finalize) 아직
+          // INPROGRESS인 드문 경우 — 1번 문항으로 되돌리면 이미 낸 답까지 다시 풀게
+          // 되므로, finish로 보내 결과(examResultId) 대기/재확인하게 한다.
+          router.push(`/${data.examSessionId}/finish`);
+        } else {
+          router.push(
+            `/${data.examSessionId}/testing/${SECTIONS[0].moduleId}/intro`,
+          );
+        }
       },
       onError: (error) => {
         showErrorModal(

@@ -25,6 +25,7 @@
   --color-limit-10: #dfefff;
   --color-limit: #1581ed;
   --color-error: #de2433;
+  --color-error-10: #ffe1e3;
 
   /* Surface */
   --color-surface-selected: rgb(0 0 0 / 5%);
@@ -82,6 +83,7 @@
   --color-limit-10: var(--color-limit-10);
   --color-limit: var(--color-limit);
   --color-error: var(--color-error);
+  --color-error-10: var(--color-error-10);
 
   --color-surface-selected: var(--color-surface-selected);
 

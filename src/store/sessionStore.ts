@@ -18,7 +18,22 @@ export const useSessionStore = create<SessionState>((set) => ({
   idCardPath: null,
   identityVerified: false,
   earCheckVerified: false,
-  setSessionId: (sessionId) => set({ sessionId }),
+  // 다른 세션으로 바뀌면(예: 이전 세션 실패/만료 후 새 세션 시작) 이전 세션에서 남은
+  // idCardPath/identityVerified/earCheckVerified가 그대로 남아있으면 안 됨 — 새 세션의
+  // /identity 페이지에 아직 아무것도 안 올렸는데 "Done"이 떠버리는 버그였음. 같은
+  // 세션 재개(id 동일)일 땐 그대로 유지해야 해서(진행하던 단계 이어감) sessionId가
+  // 바뀔 때만 리셋.
+  setSessionId: (sessionId) =>
+    set((state) =>
+      state.sessionId === sessionId
+        ? { sessionId }
+        : {
+            sessionId,
+            idCardPath: null,
+            identityVerified: false,
+            earCheckVerified: false,
+          },
+    ),
   setIdCardPath: (idCardPath) => set({ idCardPath }),
   setIdentityVerified: (identityVerified) => set({ identityVerified }),
   setEarCheckVerified: (earCheckVerified) => set({ earCheckVerified }),

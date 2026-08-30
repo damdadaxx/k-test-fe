@@ -33,6 +33,14 @@ const AREA_SHADE: Record<string, string> = {
   delivery: 'bg-icon-30',
 };
 
+// 피그마 스펙: 3개 영역 행은 점수와 무관하게 항상 고정 노출(전부 0점이어도 빈 바로 표시).
+// 채점 결과에 특정 영역이 아예 안 왔을 때(예: 전부 스킵된 응시) 그 행이 통째로 사라지는 걸 막는다.
+function withFixedAreas(domainScores: ReportDomainScore[]) {
+  return Object.keys(AREA_LABEL).map(
+    (area) => domainScores.find((d) => d.area === area) ?? { area, score: 0 },
+  );
+}
+
 // part → 섹션 카드 제목. SECTIONS(lib/exam/sections)와 같은 순서로 그룹핑해 번호를 매긴다.
 const PART_LABEL: Record<QuestionPart, string> = {
   SITUATION_DESCRIPTION: 'Speak About the Photo',
@@ -146,7 +154,7 @@ export default function ResultPage({
               <GradeBadge grade={data.finalGrade} />
             </div>
             <div className="flex w-full max-w-[635px] flex-col gap-5">
-              {data.domainScores.map((d) => (
+              {withFixedAreas(data.domainScores).map((d) => (
                 <DomainScoreRow key={d.area} domain={d} />
               ))}
             </div>
