@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,19 @@ export default function IdentityPage({
   const router = useRouter();
   const { uploadIdCard } = useIdentityVerify(examId);
   const idCardPath = useSessionStore((state) => state.idCardPath);
+  const setIdCardPath = useSessionStore((state) => state.setIdCardPath);
+  const setIdentityVerified = useSessionStore(
+    (state) => state.setIdentityVerified,
+  );
+
+  // 같은 세션 안에서 뒤로가기로 이 페이지에 다시 왔을 때도 리셋돼야 한다 — 업로드 위젯은
+  // 파일이 없는 초기 상태로 보이는데 "Done" 배지만 이전 값 그대로 남아있던 버그.
+  // /identity 진입 = 신분증 업로드부터 다시 시작이므로 매번 리셋.
+  useEffect(() => {
+    setIdCardPath(null);
+    setIdentityVerified(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 파일 선택 시 upload-url 발급 → Storage 직접 업로드. 성공하면 스토어에 path 저장.
   const handleIdUpload = (file: File) => {
