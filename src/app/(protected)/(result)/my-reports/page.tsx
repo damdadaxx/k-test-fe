@@ -146,7 +146,7 @@ function testTypeLabel(item: MyExamItem) {
 function ExamRow({ item, isLast }: { item: MyExamItem; isLast: boolean }) {
   return (
     <div
-      className={`flex w-full items-center gap-5 px-8 py-5 ${isLast ? '' : 'border-b border-neutral-30'}`}
+      className={`flex w-full items-center min-h-[88px] gap-5 px-8 py-5 ${isLast ? '' : 'border-b border-neutral-30'}`}
     >
       <p className="w-37.5 shrink-0 text-body-md text-icon-50">
         {formatDate(item.startedAt)}
