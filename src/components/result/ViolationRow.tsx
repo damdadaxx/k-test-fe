@@ -18,7 +18,7 @@ export function ViolationRow({
         {info.icon && <Image src={info.icon} width={20} height={20} alt="" />}
         <span className="text-body-sm text-error uppercase">{info.label}</span>
         <span className="h-3.5 w-px bg-error opacity-30" />
-        <span className="text-body-sm text-error">x{count}</span>
+        <span className="text-body-sm text-error">X{count}</span>
       </div>
       <p className="text-body-sm text-primary">{info.message(count)}</p>
     </div>
