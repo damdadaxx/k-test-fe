@@ -136,7 +136,13 @@ export default function ResultPage({
       {/* 증명서 형태 리포트 카드 — 고정 헤더 높이(h-20)만큼 상단 여백 */}
       <div className="mt-25 mb-25 flex w-full max-w-250 flex-col gap-8 rounded-16 bg-white px-16 py-14">
         <div className="flex w-full items-center justify-between">
-          <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
+          <Image
+            src={ImgLogo}
+            width={112}
+            height={24}
+            alt="K-TEST Logo"
+            priority
+          />
           <p className="text-body-sm text-icon-90">OFFICIAL REPORT</p>
         </div>
 

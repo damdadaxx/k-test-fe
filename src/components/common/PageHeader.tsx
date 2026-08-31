@@ -36,7 +36,13 @@ export function PageHeader() {
         )}
       >
         <Link href="/" className="flex items-center gap-2">
-          <Image src={ImgLogo} width={112} height={24} alt="K-TEST Logo" />
+          <Image
+            src={ImgLogo}
+            width={112}
+            height={24}
+            alt="K-TEST Logo"
+            priority
+          />
         </Link>
 
         {!isResolved ? null : isLoggedIn ? (
