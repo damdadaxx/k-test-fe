@@ -8,7 +8,11 @@ import { useRouter } from 'next/navigation';
 import type { Question, SessionQuestionResponse } from '@/types/exam';
 
 import { getSessionQuestions, skipQuestion } from '@/lib/api/exam';
-import { getNextSection, getSectionQuestions } from '@/lib/exam/sections';
+import {
+  getNextSection,
+  getSectionQuestionRange,
+  getSectionQuestions,
+} from '@/lib/exam/sections';
 
 import { useExamSessionGuard } from '@/hooks/exam/useExamSessionGuard';
 
@@ -24,8 +28,8 @@ function toImageUrl(imageUrl: string): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${imageUrl}`;
 }
 
-// 백엔드 문항(part별)을 화면 렌더 모델(Question)로 변환. 시간/지시문/이미지/안전수칙은
-// 모두 응답에서 읽는다. (오디오 문항 렌더는 다음 단계에서 처리)
+// 백엔드 문항(part별)을 화면 렌더 모델(Question)로 변환. 시간/지시문/이미지는
+// 모두 응답에서 읽는다.
 function toQuestion(
   raw: SessionQuestionResponse,
   moduleId: string,
@@ -38,22 +42,14 @@ function toQuestion(
     order,
     situation: '',
     instruction: raw.instruction ?? '',
+    part: raw.part,
     guideTexts: raw.guideTexts,
     prepSeconds: raw.preparationSeconds,
     answerSeconds: raw.responseSeconds,
   };
 
-  // 읽고 설명하기 — 안전수칙 카드
-  if (raw.part === 'READ_AND_EXPLAIN') {
-    return {
-      ...base,
-      topicTitle: raw.safetyRulesTitle,
-      topicBullets: raw.safetyRules,
-    };
-  }
-
-  // 상황 묘사하기 — 그림 제시
-  if (raw.part === 'SITUATION_DESCRIPTION') {
+  // 상황 묘사하기 / 읽고 설명하기 — 둘 다 그림 제시(디자인 변경으로 통일됨).
+  if (raw.part === 'SITUATION_DESCRIPTION' || raw.part === 'READ_AND_EXPLAIN') {
     return { ...base, imageUrl: toImageUrl(raw.imageUrl) };
   }
 
@@ -108,7 +104,13 @@ export default function TestingQuestionPage({
     );
   }
 
-  const question = toQuestion(rawQuestion, moduleId, currentIndex + 1);
+  // 전체 6문항 기준 번호(섹션 안 순번 아님) — intro 페이지 "문제 수" 범위 계산과 동일한
+  // getSectionQuestionRange로 시작 번호를 구해서 이 섹션 안 인덱스를 더한다.
+  const questionRange = rawQuestions
+    ? getSectionQuestionRange(rawQuestions, moduleId)
+    : null;
+  const globalOrder = (questionRange?.start ?? 1) + currentIndex;
+  const question = toQuestion(rawQuestion, moduleId, globalOrder);
   // 다음 문항도, 다음 섹션도 없으면 마지막 문항(section3 끝) → 버튼을 "제출"로 표시.
   // (동작 자체는 여전히 skip 호출 — 실제 답안 제출은 SpeakingQuestion 녹음이 담당.
   // "제출"이라는 라벨은 이걸 눌러 시험을 끝낸다는 의미로만 쓴다.)

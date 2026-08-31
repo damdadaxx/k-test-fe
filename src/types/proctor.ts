@@ -21,10 +21,21 @@ export interface ViolationResponse {
   sessionStatus: SessionStatus;
 }
 
+// 모니터링 서비스가 이벤트별로 주는 상세 정보 — 필드는 eventType마다 다를 수 있어 느슨하게 둔다.
+// message는 그대로 화면에 노출해도 되는 문구(예: "휴대폰이 탐지되었습니다.").
+export interface AnalyzeEventMeta {
+  ruleId?: string;
+  decision?: string;
+  message?: string;
+  label?: string;
+  confidence?: number;
+}
+
 export interface AnalyzeRecordedEvent {
   id: string;
   eventType: string;
   severity: ProctorSeverity;
+  meta: AnalyzeEventMeta;
   snapshotPath: string | null;
 }
 

@@ -32,12 +32,14 @@ export interface ReportTask {
   response: string | null; // STT 전사, 스킵이면 null
   requiredPoints: ReportRequiredPoint[] | null; // 스킵이면 null
 }
-// 실제 swagger(ReportViolationResponseDto)는 종류별 집계가 아니라 위반 건별 상세 —
-// 화면에 필요한 "종류별 횟수"는 프런트가 eventType으로 묶어서 직접 계산한다.
+// 실제 응답은 eventType을 severity별로 쪼개 여러 건으로 주고(예: HEAD_POSE_AWAY가
+// LOW/MEDIUM/HIGH 각각 count 포함 3건), 화면에 필요한 "종류별 총 횟수"는 프런트가
+// eventType으로 다시 묶어 count를 합산해 계산한다(swagger엔 count 필드가 누락돼있음).
 export interface ReportViolation {
   id: string;
   eventType: string; // 브라우저 감지(TAB_SWITCH 등) + AI 웹캠 분석(FACE_OUT_OF_FRAME 등) 혼재
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  count: number;
   meta: Record<string, unknown>;
   createdAt: string;
   snapshotPath: string | null;
@@ -109,16 +111,16 @@ export interface BaseQuestion {
   order: number;
   situation: string;
   instruction: string;
+  part: QuestionPart;
 }
 
 export interface SpeakingQuestionData extends BaseQuestion {
   type: 'speaking';
   // 지시문 아래 안내 문구(백엔드 guideTexts).
   guideTexts: string[];
+  // SITUATION_DESCRIPTION·READ_AND_EXPLAIN 둘 다 이미지 제시(디자인 변경 —
+  // READ_AND_EXPLAIN도 예전엔 안전수칙 텍스트였지만 이제 Section1과 동일하게 이미지+텍스트).
   imageUrl?: string;
-  // 이미지 없이 주제 텍스트로 발화하는 문항(안전수칙 등)일 때만 채워짐.
-  topicTitle?: string;
-  topicBullets?: string[];
   // 질문을 먼저 듣고 답하는 문항(듣기)일 때만 채워짐.
   audioUrl?: string;
   prepSeconds: number;
