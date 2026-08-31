@@ -17,8 +17,9 @@ import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
 import LoadingDisplay from '@/components/common/Display/LoadingDisplay';
 import { ModalBase } from '@/components/common/Modal/ModalBase';
 
-// 점 응시 5초 → 5초 카운트다운(5→1) → 시험 진입 (Figma 시험 시작전 플로우).
-const DOT_SECONDS = 5;
+// 점 응시 3초(안내 문구만) → 5초 카운트다운(5→1, 점 계속 보임) → 시험 진입
+// (Figma node 40001256:7944).
+const DOT_SECONDS = 3;
 const COUNTDOWN_START = 5;
 
 // ponytail: 개발용 우회. 값이 있으면 로그인·본인인증 안 거치고 이 세션 id로 바로 진입.
@@ -238,23 +239,31 @@ export default function ReadyPage({
         className="pointer-events-none fixed size-px opacity-0"
       />
       <main className="relative flex flex-1 flex-col items-center">
-        <p className="mt-[52px] text-title-lg tracking-[-0.64px] text-icon-90 text-center">
-          {isDot
-            ? 'Preparation is complete. Please look at the dot below.'
-            : 'The test will now begin.'}
-        </p>
-
         {isDot ? (
-          <span className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black" />
-        ) : count === 0 ? (
+          <p className="mt-39 text-title-lg tracking-[-0.64px] text-icon-90 text-center">
+            Preparation is complete. Please look at the dot below.
+          </p>
+        ) : (
+          count !== 0 && (
+            <div className="mt-39 flex flex-col items-center gap-3">
+              <p className="text-title-lg tracking-[-0.64px] text-icon-90">
+                {count}
+              </p>
+              <p className="text-title-md font-normal text-icon-50">
+                The test will now begin.
+              </p>
+            </div>
+          )
+        )}
+
+        {/* 점은 점 응시 단계부터 카운트다운 내내 같은 위치에 계속 보임(0에서만 로딩으로 교체). */}
+        {count === 0 ? (
           // 카운트 종료 → 캘리브레이션 전송 대기 로딩.
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <LoadingDisplay fullHeight={false} />
           </div>
         ) : (
-          <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[100px] font-bold tracking-[-2px] text-black">
-            {count}
-          </p>
+          <span className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black" />
         )}
       </main>
     </div>
