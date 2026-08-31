@@ -32,12 +32,14 @@ export interface ReportTask {
   response: string | null; // STT 전사, 스킵이면 null
   requiredPoints: ReportRequiredPoint[] | null; // 스킵이면 null
 }
-// 실제 swagger(ReportViolationResponseDto)는 종류별 집계가 아니라 위반 건별 상세 —
-// 화면에 필요한 "종류별 횟수"는 프런트가 eventType으로 묶어서 직접 계산한다.
+// 실제 응답은 eventType을 severity별로 쪼개 여러 건으로 주고(예: HEAD_POSE_AWAY가
+// LOW/MEDIUM/HIGH 각각 count 포함 3건), 화면에 필요한 "종류별 총 횟수"는 프런트가
+// eventType으로 다시 묶어 count를 합산해 계산한다(swagger엔 count 필드가 누락돼있음).
 export interface ReportViolation {
   id: string;
   eventType: string; // 브라우저 감지(TAB_SWITCH 등) + AI 웹캠 분석(FACE_OUT_OF_FRAME 등) 혼재
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  count: number;
   meta: Record<string, unknown>;
   createdAt: string;
   snapshotPath: string | null;

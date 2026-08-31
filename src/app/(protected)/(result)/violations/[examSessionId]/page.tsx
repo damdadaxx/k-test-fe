@@ -11,11 +11,12 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { ViolationRow } from '@/components/result/ViolationRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 
-// eventType별로 묶어 횟수를 센다. 백엔드는 건별 상세만 주고 집계는 프런트 몫.
-function groupByEventType(violations: { eventType: string }[]) {
+// eventType별로 묶어 횟수를 합산한다. 백엔드가 같은 eventType을 severity별로 쪼개
+// count와 함께 여러 건으로 주므로, 건수(1)가 아니라 count를 더해야 한다.
+function groupByEventType(violations: { eventType: string; count: number }[]) {
   const counts = new Map<string, number>();
-  for (const { eventType } of violations) {
-    counts.set(eventType, (counts.get(eventType) ?? 0) + 1);
+  for (const { eventType, count } of violations) {
+    counts.set(eventType, (counts.get(eventType) ?? 0) + count);
   }
   return [...counts.entries()];
 }
