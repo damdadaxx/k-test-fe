@@ -109,16 +109,16 @@ export interface BaseQuestion {
   order: number;
   situation: string;
   instruction: string;
+  part: QuestionPart;
 }
 
 export interface SpeakingQuestionData extends BaseQuestion {
   type: 'speaking';
   // 지시문 아래 안내 문구(백엔드 guideTexts).
   guideTexts: string[];
+  // SITUATION_DESCRIPTION·READ_AND_EXPLAIN 둘 다 이미지 제시(디자인 변경 —
+  // READ_AND_EXPLAIN도 예전엔 안전수칙 텍스트였지만 이제 Section1과 동일하게 이미지+텍스트).
   imageUrl?: string;
-  // 이미지 없이 주제 텍스트로 발화하는 문항(안전수칙 등)일 때만 채워짐.
-  topicTitle?: string;
-  topicBullets?: string[];
   // 질문을 먼저 듣고 답하는 문항(듣기)일 때만 채워짐.
   audioUrl?: string;
   prepSeconds: number;
