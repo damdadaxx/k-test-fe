@@ -8,6 +8,10 @@ import { captureVideoFrame } from '@/lib/utils/captureVideoFrame';
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
 import { useCameraStream } from '@/providers/CameraStreamProvider';
+import { useModal } from '@/providers/ModalProvider';
+
+import ButtonPrimary from '@/components/common/Button/ButtonPrimary';
+import { ModalBase } from '@/components/common/Modal/ModalBase';
 
 // 웹캠 프레임 주기 전송. 결정 근거·비용 레버는 docs/planning/05-proctoring-monitoring.md 참고.
 // - 기본 10s, env로 조절. severity>=LOW 응답 오면 일정시간 5s로 가속(adaptive).
@@ -37,6 +41,7 @@ export function WebcamMonitor({
   const videoRef = useRef<HTMLVideoElement>(null);
   // 카메라 스트림은 CameraStreamProvider가 한 번만 취득해 공유(중복 getUserMedia 제거).
   const stream = useCameraStream();
+  const { openModal, closeModal } = useModal();
 
   // 렌더 유발 없이 유지되는 루프 상태. 시작 시각은 effect에서 세팅(렌더 중 Date.now()는 impure).
   const startedAtRef = useRef(0);
@@ -47,6 +52,9 @@ export function WebcamMonitor({
   // identityCheckRequested:true인데 identityCheckExecuted:false로 오면(얼굴 0명/여러 명)
   // 동일인 검사가 실제로는 안 된 것 — 다음 프레임에 바로 재시도(6프레임 주기 기다리지 않음).
   const retryIdentityCheckRef = useRef(false);
+  // 시연용: 휴대폰 감지 경고는 세션당 1번만(반복 감지돼도 다시 안 띄움).
+  // TODO(project_phone_detection_modal_pending 메모): 기획자 답변 오면 빈도 정책 다시 확정.
+  const phoneWarnedRef = useRef(false);
 
   useEffect(() => {
     if (PROCTOR_DISABLED || !stream) return;
@@ -146,6 +154,29 @@ export function WebcamMonitor({
           retryIdentityCheckRef.current =
             res.identityCheckRequested && !res.identityCheckExecuted;
 
+          // 시연용: 휴대폰 감지 시 세션당 1번만 경고 모달. 문구는 백엔드가 준 그대로.
+          if (!phoneWarnedRef.current) {
+            const phoneEvent = res.recordedEvents.find(
+              (e) => e.eventType === 'PHONE_DETECTED',
+            );
+            if (phoneEvent) {
+              phoneWarnedRef.current = true;
+              openModal(
+                <ModalBase
+                  onClose={closeModal}
+                  className="flex w-90 flex-col items-center gap-6 text-center"
+                >
+                  <p className="text-body-lg text-primary">
+                    {phoneEvent.meta.message ?? 'A phone was detected.'}
+                  </p>
+                  <ButtonPrimary width={140} onClick={closeModal}>
+                    Confirm
+                  </ButtonPrimary>
+                </ModalBase>,
+              );
+            }
+          }
+
           // 위반 감지되면 잠시 가속.
           if (res.severity !== 'NORMAL') {
             fastUntilRef.current = Date.now() + FAST_WINDOW_MS;
@@ -172,7 +203,7 @@ export function WebcamMonitor({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [examSessionId, intervalMs, stream]);
+  }, [examSessionId, intervalMs, stream, openModal, closeModal]);
 
   // 화면에 안 보이는 캡처 전용 비디오.
   return (

@@ -242,7 +242,7 @@ export default function SignupPage() {
 
   return (
     <main>
-      <PageHeader variant="public" />
+      <PageHeader />
 
       <section className="flex min-h-screen flex-col items-center bg-page-bg pt-20">
         <div className="flex w-full max-w-190 flex-col items-center pt-12.5 pb-20">

@@ -26,7 +26,6 @@ import { ModalBase } from '@/components/common/Modal/ModalBase';
 import { ImagePrompt } from './ImagePrompt';
 import { RecordingWaveform } from './RecordingWaveform';
 import { SoundPlayer } from './SoundPlayer';
-import { TopicPrompt } from './TopicPrompt';
 
 // 준비(prepSeconds) 동안 녹음 버튼 노출 → 클릭 또는 준비시간 종료 시 녹음 시작.
 // 녹음 시간(answerSeconds)이 끝나면 남은 시간과 무관하게 바로 다음 문제로 넘어간다.
@@ -271,50 +270,58 @@ export function SpeakingQuestion({
   return (
     <section
       className={cn(
-        'flex h-full flex-1 flex-col items-center justify-between px-[26px] mt-[51px] mb-[33px] text-center',
+        'flex h-full flex-1 flex-col items-center px-[26px] mt-[51px] mb-[33px] text-center',
         isRecording ? 'h-[calc(100vh-208px-35px)]' : 'h-[calc(100vh-208px)]',
       )}
     >
-      <div className="flex flex-col items-center">
-        <div className="flex flex-col items-center gap-3">
-          <h1 className="text-title-lg tracking-[-0.64px] text-icon-90">
-            {headingText}
-          </h1>
-          {subText && (
-            <p className="text-title-sm font-normal text-icon-50">{subText}</p>
-          )}
-        </div>
+      <div className="flex shrink-0 flex-col items-center gap-3">
+        {/* 문항 번호(전체 6문항 기준, 섹션 안 순번 아님) — Figma 477:2582 */}
+        <p className="text-title-lg tracking-[-0.64px] text-icon-50">
+          {String(question.order).padStart(2, '0')}
+        </p>
+        <h1 className="text-title-lg tracking-[-0.64px] text-icon-90">
+          {headingText}
+        </h1>
+        {subText && (
+          <p className="text-title-sm font-normal text-icon-50">{subText}</p>
+        )}
+      </div>
 
+      {/* 이미지/오디오 플레이어를 텍스트-버튼 사이 남는 공간 정중앙에 — 이미지 세로
+          크기가 원본 비율대로 제각각이라(ImagePrompt) 고정 마진 대신 flex 중앙정렬로 맞춘다. */}
+      <div className="flex w-full flex-1 items-center justify-center py-[20px]">
         {isListening ? (
           <SoundPlayer
             playing={playing}
             disabled={playing || isRecording || listenCount >= MAX_LISTENS}
             onPlay={playAudio}
           />
-        ) : question.topicTitle ? (
-          <TopicPrompt
-            title={question.topicTitle}
-            bullets={question.topicBullets ?? []}
-          />
         ) : (
-          <ImagePrompt imageUrl={question.imageUrl ?? ''} />
+          <ImagePrompt
+            imageUrl={question.imageUrl ?? ''}
+            fixedSize={question.part === 'SITUATION_DESCRIPTION'}
+          />
         )}
       </div>
 
-      <div className="flex flex-col items-center mt-[33px]">
+      <div className="flex shrink-0 flex-col items-center">
         {isRecording && <RecordingWaveform />}
 
         {phase === 'prep' ? (
-          showRecordButton && (
-            <ButtonSecondary
-              onClick={startRecording}
-              disabled={isListening && playing}
-              icon={<Image src={IcMicrophone} alt="" width={24} height={24} />}
-              className="w-auto min-w-64.25"
-            >
-              클릭해 녹음하세요
-            </ButtonSecondary>
-          )
+          // 듣기 문항은 1회 듣기 전엔 버튼을 안 보여주지만, 렌더 자체를 없애면
+          // 그만큼 아래 영역 높이가 줄어서 위 중앙정렬(음성 플레이어)이 버튼 유무에
+          // 따라 흔들린다 — invisible로 자리는 유지하고 안 보이기만 하게 처리.
+          <ButtonSecondary
+            onClick={startRecording}
+            disabled={!showRecordButton || (isListening && playing)}
+            icon={<Image src={IcMicrophone} alt="" width={24} height={24} />}
+            className={cn(
+              'w-auto min-w-64.25',
+              !showRecordButton && 'invisible',
+            )}
+          >
+            클릭해 녹음하세요
+          </ButtonSecondary>
         ) : (
           <button
             type="button"

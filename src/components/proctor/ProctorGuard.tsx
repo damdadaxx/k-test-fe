@@ -50,7 +50,9 @@ const WARNING: Record<ViolationType, string> = {
 
 /**
  * 시험 세션 레이아웃에 전역 마운트. 브라우저 부정행위 이벤트를 감지해 신고하고,
- * 같은 종류 2회 누적으로 실격(sessionStatus=DISQUALIFIED)되면 결과 화면으로 보낸다.
+ * 실격(sessionStatus=DISQUALIFIED) 응답 오면 결과 화면으로 보낸다.
+ * 몇 회 누적 시 실격인지는 프론트가 카운트 안 함 — 서버 판단 그대로 따름
+ * (예: DUAL_MONITOR는 1회, 나머지는 2회 등, 백엔드 정책 바뀌어도 여기 코드는 안 바뀜).
  */
 export function ProctorGuard({ examSessionId }: { examSessionId: string }) {
   const router = useRouter();
