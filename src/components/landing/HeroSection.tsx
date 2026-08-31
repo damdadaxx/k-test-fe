@@ -32,7 +32,7 @@ export function HeroSection() {
               'tablet:order-1 w-full tablet:text-left',
             )}
           >
-            <h1 className="text-4xl font-bold text-[60px] text-black leading-[70px]">
+            <h1 className="text-4xl font-bold text-[48px] text-black leading-[70px]">
               Certify your Korean proficiency <br />
               anywhere, anytime
             </h1>
