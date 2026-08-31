@@ -46,10 +46,10 @@ export default function EarCheckPage({
     return earDetection.mutateAsync({ leftEarImage, rightEarImage });
   };
 
-  // 본인인증 완료 → 준비 화면으로. 세션은 랜딩(Take Test)에서 이미 생성됨 —
-  // examId(=examSessionId)를 그대로 넘겨 /ready에서 캘리브레이션 후 같은 세션으로 진입.
+  // 본인인증 완료 → 듀얼모니터 안내 화면으로(캘리브레이션 /ready 진입 전 잠깐 노출).
+  // 세션은 랜딩(Take Test)에서 이미 생성됨 — examId(=examSessionId)를 그대로 넘겨간다.
   const handleNext = () => {
-    router.push(`/${examId}/ready`);
+    router.push(`/${examId}/dual-monitor-notice`);
   };
 
   return (
