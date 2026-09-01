@@ -25,8 +25,8 @@ export default function DualMonitorNoticePage({
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <main className="flex flex-1 flex-col items-center">
-        <div className="mt-39 flex flex-col items-center gap-3 text-center">
+      <main className="flex flex-1 flex-col items-center px-6">
+        <div className="mt-[10.83vw] flex flex-col items-center gap-3 text-center">
           <p className="text-title-lg tracking-[-0.64px] text-icon-90">
             You can&rsquo;t use dual monitors during the test.
           </p>
