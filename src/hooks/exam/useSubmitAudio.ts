@@ -1,10 +1,24 @@
 import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 import { getAnswerUploadUrl, saveAnswer } from '@/lib/api/exam';
 import { uploadToSignedUrl } from '@/lib/utils/uploadToSignedUrl';
 
+// 일시적 실패(네트워크/5xx)만 재시도. 4xx(이미 답안 저장·세션 종료 등)는 영구적이라 재시도 안 함.
+const MAX_RETRIES = 2;
+
+function isTransient(error: unknown): boolean {
+  const status = axios.isAxiosError(error)
+    ? error.response?.status
+    : (error as { status?: number } | undefined)?.status;
+  return status === undefined || status >= 500;
+}
+
 export function useSubmitAudio(sessionId: string, questionId: string) {
   return useMutation({
+    retry: (failureCount, error) =>
+      failureCount < MAX_RETRIES && isTransient(error),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
     mutationFn: async ({
       blob,
       durationMs,

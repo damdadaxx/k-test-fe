@@ -46,27 +46,27 @@ const VIOLATION_INFO: Record<string, ViolationInfo> = {
     label: 'Face Out Of Frame',
     message: (n) => `Your face was out of the camera frame ${times(n)}.`,
   },
-  MULTIPLE_FACES: {
-    label: 'Multiple Faces',
-    message: (n) => `Multiple faces were detected ${times(n)} during the test.`,
-  },
-  HEAD_POSE_AWAY: {
-    label: 'Head Pose Away',
-    message: (n) => `Your head turned away from the screen ${times(n)}.`,
-  },
-  IDENTITY_MISMATCH: {
-    label: 'Identity Mismatch',
-    message: (n) =>
-      `A different person was detected ${times(n)} during the test.`,
-  },
+  // MULTIPLE_FACES: {
+  //   label: 'Multiple Faces',
+  //   message: (n) => `Multiple faces were detected ${times(n)} during the test.`,
+  // },
+  // HEAD_POSE_AWAY: {
+  //   label: 'Head Pose Away',
+  //   message: (n) => `Your head turned away from the screen ${times(n)}.`,
+  // },
+  // IDENTITY_MISMATCH: {
+  //   label: 'Identity Mismatch',
+  //   message: (n) =>
+  //     `A different person was detected ${times(n)} during the test.`,
+  // },
   PHONE_DETECTED: {
     label: 'Phone Detected',
     message: (n) => `A phone was detected ${times(n)} during the test.`,
   },
-  EARPHONE_DETECTED: {
-    label: 'Earphone Detected',
-    message: (n) => `Earphone use was detected ${times(n)} during the test.`,
-  },
+  // EARPHONE_DETECTED: {
+  //   label: 'Earphone Detected',
+  //   message: (n) => `Earphone use was detected ${times(n)} during the test.`,
+  // },
 };
 
 export function getViolationInfo(eventType: string): ViolationInfo {
