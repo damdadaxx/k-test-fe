@@ -14,6 +14,8 @@ export async function uploadToSignedUrl(
   });
 
   if (!response.ok) {
-    throw new Error(`파일 업로드 실패 (${response.status})`);
+    const error = new Error(`파일 업로드 실패 (${response.status})`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
   }
 }
